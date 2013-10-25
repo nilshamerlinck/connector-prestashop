@@ -412,10 +412,23 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     direct = [
         ('product_name', 'name'),
         ('id', 'sequence'),
-        ('product_price', 'price_unit'),
         ('product_quantity', 'product_uom_qty'),
         ('reduction_percent', 'discount'),
     ]
+
+    @mapping
+    def price_unit(self, record):
+        if self.backend_record.taxes_included:
+            key = 'unit_price_tax_incl'
+        else:
+            key = 'unit_price_tax_excl'
+		if record['reduction_percent']:
+			reduction = Decimal(record['reduction_percent'])
+        	price = Decimal(record[key])
+			price_unit = price / ((100 - reduction) / 100) 
+		else:
+			price_unit = record[key]
+        return {'price_unit': price_unit}
 
     @mapping
     def product_id(self, record):
