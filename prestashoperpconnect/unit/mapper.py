@@ -22,6 +22,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from decimal import Decimal
 
 from openerp.tools.translate import _
 from openerp.addons.connector.unit.mapper import (
@@ -440,12 +441,12 @@ class SaleOrderLineMapper(PrestashopImportMapper):
             key = 'unit_price_tax_incl'
         else:
             key = 'unit_price_tax_excl'
-		if record['reduction_percent']:
-			reduction = Decimal(record['reduction_percent'])
-        	price = Decimal(record[key])
-			price_unit = price / ((100 - reduction) / 100) 
-		else:
-			price_unit = record[key]
+        if record['reduction_percent']:
+            reduction = Decimal(record['reduction_percent'])
+            price = Decimal(record[key])
+            price_unit = price / ((100 - reduction) / 100) 
+        else:
+            price_unit = record[key]
         return {'price_unit': price_unit}
 
     @mapping
