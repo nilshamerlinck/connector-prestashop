@@ -22,6 +22,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from decimal import Decimal
 
 from decimal import Decimal
 
@@ -177,16 +178,16 @@ class PartnerImportMapper(PrestashopImportMapper):
     @mapping
     def lang(self, record):
         binder = self.get_binder_for_model('prestashop.res.lang')
-        if not record.get('id_lang'):
+        erp_lang_id = None
+        if record.get('id_lang'):
+            erp_lang_id = binder.to_openerp(record['id_lang'])
+        if erp_lang_id is None:
             data_obj = self.session.pool.get('ir.model.data')
             erp_lang_id = data_obj.get_object_reference(
                 self.session.cr,
                 self.session.uid,
                 'base',
                 'lang_en')[1]
-            record['id_lang'] = binder.to_backend(erp_lang_id)
-        else:
-            erp_lang_id = binder.to_openerp(record['id_lang'])
         model = self.environment.session.pool.get('prestashop.res.lang')
         erp_lang = model.read(
             self.session.cr,
@@ -440,16 +441,19 @@ class SaleOrderMapper(PrestashopImportMapper):
 
     def _after_mapping(self, result):
         sess = self.session
+        backend = self.backend_record
         order_line_ids = []
         if 'prestashop_order_line_ids' in result:
             order_line_ids = result['prestashop_order_line_ids']
-        result = sess.pool['sale.order']._convert_special_fields(
-            sess.cr,
-            sess.uid,
-            result,
-            order_line_ids,
-            sess.context
-        )
+        taxes_included = backend.taxes_included
+        with self.session.change_context({'is_tax_included': taxes_included}):
+            result = sess.pool['sale.order']._convert_special_fields(
+                sess.cr,
+                sess.uid,
+                result,
+                order_line_ids,
+                sess.context
+            )
         onchange = self.get_connector_unit_for_model(SaleOrderOnChange)
         order_line_ids = []
         if 'prestashop_order_line_ids' in result:
@@ -464,10 +468,23 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     direct = [
         ('product_name', 'name'),
         ('id', 'sequence'),
-        ('product_price', 'price_unit'),
         ('product_quantity', 'product_uom_qty'),
         ('reduction_percent', 'discount'),
     ]
+
+    @mapping
+    def price_unit(self, record):
+        if self.backend_record.taxes_included:
+            key = 'unit_price_tax_incl'
+        else:
+            key = 'unit_price_tax_excl'
+        if record['reduction_percent']:
+            reduction = Decimal(record['reduction_percent'])
+            price = Decimal(record[key])
+            price_unit = price / ((100 - reduction) / 100) 
+        else:
+            price_unit = record[key]
+        return {'price_unit': price_unit}
 
     @mapping
     def product_id(self, record):
