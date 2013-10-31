@@ -329,7 +329,6 @@ class SaleOrderMapper(PrestashopImportMapper):
             sale_order_line = mapper.data
             product = self.session.browse('prestashop.product.product',
                                           sale_order_line['product_id'])
-            import pdb; pdb.set_trace()
             key = tuple(product.taxes_id)
             if key in amount_by_tax:
                 amount_by_tax[key] += Decimal(sale_order_line['price_unit'])
@@ -359,7 +358,6 @@ class SaleOrderMapper(PrestashopImportMapper):
         discount = adapter.read(discount_id)
         mappers = []
         for taxes_id, amount in amount_by_tax.items():
-            import pdb; pdb.set_trace()
             mapper = self._init_child_mapper(
                 'prestashop.sale.order.line.discount')
             mapper.taxes_id = taxes_id
@@ -506,7 +504,11 @@ class SaleOrderLineDiscount(PrestashopImportMapper):
 
     @mapping
     def discount(self, record):
-        base_price = Decimal(record['value_tax_excl'])
+        if self.backend_record.taxes_included:
+            key = 'value'
+        else:
+            key = 'value_tax_excl'
+        base_price = Decimal(record[key])
         price_unit = -1 * base_price * self.amount / self.total_amount
         return {
             'name': _('Discount %s') % (record['name']),
@@ -530,8 +532,9 @@ class SaleOrderLineDiscount(PrestashopImportMapper):
         return {'backend_id': self.backend_record.id}
 
     @mapping
-    def taxes_id_mapping(self, record):
-        return {'taxes_id': self.taxes_id}
+    def tax_id(self, record):
+        taxes_id = [tax.id for tax in self.taxes_id]
+        return {'tax_id': [(6, 0, taxes_id)]}
 
 
 @prestashop
