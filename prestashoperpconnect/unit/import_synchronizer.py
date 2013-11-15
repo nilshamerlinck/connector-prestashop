@@ -33,8 +33,8 @@ from ..backend import prestashop
 from ..connector import get_environment
 from backend_adapter import GenericAdapter
 from .exception import OrderImportRuleRetry
-
 from openerp.addons.connector.exception import FailedJobError
+from ..connector import get_environment, add_checkpoint
 
 _logger = logging.getLogger(__name__)
 
@@ -190,6 +190,21 @@ class BatchImportSynchronizer(ImportSynchronizer):
         """ Import a record directly or delay the import of the record """
         raise NotImplementedError
 
+@prestashop
+class AddCheckpoint(ConnectorUnit):
+    """ Add a connector.checkpoint on the underlying model
+    (not the prestashop.* but the _inherits'ed model) """
+
+    _model_name = []
+
+    def run(self, openerp_binding_id):
+        binding = self.session.browse(self.model._name,
+                                      openerp_binding_id)
+        record = binding.openerp_id
+        add_checkpoint(self.session,
+                       record._model._name,
+                       record.id,
+                       self.backend_record.id)
 
 @prestashop
 class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
