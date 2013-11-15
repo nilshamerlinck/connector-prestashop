@@ -157,7 +157,7 @@ class sale_order_line(orm.Model):
     }
 
 
-    class prestashop_sale_order_line(orm.Model):
+class prestashop_sale_order_line(orm.Model):
     _name = 'prestashop.sale.order.line'
     _inherit = 'prestashop.binding'
     _inherits = {'sale.order.line': 'openerp_id'}
