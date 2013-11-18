@@ -420,6 +420,14 @@ class SaleOrderMapper(PrestashopImportMapper):
                 - float(record['total_paid_tax_excl'])
         return {'total_amount_tax': tax}
 
+    @mapping
+    def sale_automatic_workflow(self, record):
+        if record['current_state'] in ['4', '5', '6', '7', '8']:
+            return {'workflow_process_id': 3}
+        if 'mk6' in self.backend_record.location and record['current_state'] in ['14', '15']:
+            return {'workflow_process_id': 3}
+        return {}
+
     def _after_mapping(self, result):
         sess = self.session
         backend = self.backend_record
