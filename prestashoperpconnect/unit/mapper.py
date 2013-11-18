@@ -510,6 +510,8 @@ class SaleOrderLineDiscount(PrestashopImportMapper):
 
     @mapping
     def product_id(self, record):
+        if self.backend_record.discount_product_id:
+            return {'product_id': self.backend_record.discount_product_id.id}
         data_obj = self.session.pool.get('ir.model.data')
         model_name, product_id = data_obj.get_object_reference(
             self.session.cr,
