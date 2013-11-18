@@ -30,7 +30,7 @@ Check your taxes and fiscal positions configuration and correct them if necessar
             <field name="sequence">30</field>
             <field name="model">sale.order</field>
             <field name="code"># By default, a cent of difference for the tax amount is allowed, feel free to customise it in your own module
-if order.prestashop_bind_ids and abs(order.amount_tax - order.prestashop_bind_ids[0].total_amount_tax) > 0.01:
+if order.prestashop_bind_ids and (abs(1 - order.amount_tax / order.prestashop_bind_ids[0].total_amount_tax) > 0.01) or (not order.prestashop_bind_ids[0].total_amount_tax and order.amount_tax):
     failed = True</field>
             <field name="active" eval="True"/>
         </record>
