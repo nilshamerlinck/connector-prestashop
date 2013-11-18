@@ -426,6 +426,8 @@ class SaleOrderMapper(PrestashopImportMapper):
             return {'workflow_process_id': 3}
         if 'mk6' in self.backend_record.location and record['current_state'] in ['14', '15']:
             return {'workflow_process_id': 3}
+        if 'logistiflex' in self.backend_record.location and record['current_state'] in ['2']:
+            return {'workflow_process_id': 3}
         return {}
 
     def _after_mapping(self, result):
