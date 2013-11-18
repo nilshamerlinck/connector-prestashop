@@ -8,6 +8,7 @@ from .unit.import_synchronizer import TranslatableRecordImport
 from .unit.mapper import PrestashopImportMapper
 from openerp.addons.connector.unit.backend_adapter import BackendAdapter
 from openerp.addons.connector.unit.mapper import mapping
+from openerp.osv.orm import browse_record_list
 
 
 class product_product(orm.Model):
@@ -111,14 +112,14 @@ class ProductCombinationMapper(PrestashopImportMapper):
     ]
 
     from_main = [
-        'name',
         'categ_id',
         'categ_ids',
-        'taxes_ids',
+        'taxes_id',
         'type',
         'company_id',
+        'image_medium',
     ]
-
+            
     @mapping
     def from_main_product(self, record):
         main_product = self.main_product(record)
@@ -128,7 +129,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
                 continue
             if hasattr(main_product[attribute], 'id'):
                 result[attribute] = main_product[attribute].id
-            elif type(main_product[attribute]) is list:
+            elif type(main_product[attribute]) is browse_record_list:
                 ids = []
                 for element in main_product[attribute]:
                     ids.append(element.id)
@@ -162,14 +163,12 @@ class ProductCombinationMapper(PrestashopImportMapper):
             return {'attribute_set_id': product.attribute_set_id.id}
         return {}
 
-    @mapping
-    def attributes_values(self, record):
+    def _get_option_value(self, record):
         option_values = record['associations']['product_option_values'][
             'product_option_value']
         if type(option_values) is dict:
             option_values = [option_values]
 
-        results = {}
         for option_value in option_values:
 
             option_value_binder = self.get_binder_for_model(
@@ -184,6 +183,22 @@ class ProductCombinationMapper(PrestashopImportMapper):
                 self.session.uid,
                 option_value_openerp_id
             )
+            yield option_value_object
+
+    @mapping
+    def name(self, record):
+        product = self.main_product(record)
+        options = []
+        for option_value_object in self._get_option_value(record):
+            key = option_value_object.attribute_id.field_description
+            value = option_value_object.name
+            options.append('%s:%s' % (key, value))
+        return {'name': '%s (%s)' % (product.name, ' ; '.join(options))}
+
+    @mapping
+    def attributes_values(self, record):
+        results = {}
+        for option_value_object in self._get_option_value(record):
             field_name = option_value_object.attribute_id.name
             results[field_name] = option_value_object.id
         return results
