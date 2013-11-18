@@ -496,8 +496,13 @@ class SaleOrderLineDiscount(PrestashopImportMapper):
         return {
             'name': _('Discount %s') % (record['name']),
             'product_uom_qty': 1,
-            'price_unit': '-%s' % (record['value_tax_excl']),
         }
+
+    @mapping
+    def price_unit(self, record):
+        if self.backend_record.taxes_included:
+            return {'price_unit': '-%s' % (record['value'])}
+        return {'price_unit': '-%s' % (record['value_tax_excl'])}
 
     @mapping
     def product_id(self, record):
