@@ -49,6 +49,8 @@ class PrestashopImportMapper(ImportMapper):
         '''
         binder = self.get_binder_for_model(model)
         erp_ps_id = binder.to_openerp(prestashop_id)
+        if erp_ps_id is None:
+            return None
 
         model = self.session.pool.get(model)
         erp_ps_object = model.read(
@@ -235,12 +237,23 @@ class AddressImportMapper(PrestashopImportMapper):
         )
         if record['vat_number']:
             vat_number = record['vat_number'].replace('.', '')
-            self.session.write(
-                'res.partner',
-                [parent_id],
-                {'vat': vat_number}
-            )
+            if self._check_vat(vat_number):
+                self.session.write(
+                    'res.partner',
+                    [parent_id],
+                    {'vat': vat_number}
+                )
         return {'parent_id': parent_id}
+
+    def _check_vat(self, vat):
+        vat_country, vat_number = vat[:2].lower(), vat[2:].replace(' ', '')
+        return self.session.pool['res.partner'].simple_vat_check(
+            self.session.cr,
+            self.session.uid,
+            vat_country,
+            vat_number,
+            context=self.session.context
+        )
 
     @mapping
     def name(self, record):
@@ -295,7 +308,6 @@ class SaleOrderMapper(PrestashopImportMapper):
     _model_name = 'prestashop.sale.order'
 
     direct = [
-        ('reference', 'name'),
         ('date_add', 'date_order'),
         ('invoice_number','prestashop_invoice_number'),
         ('delivery_number','prestashop_delivery_number'),
@@ -350,6 +362,25 @@ class SaleOrderMapper(PrestashopImportMapper):
             mapper.convert_child(discount, parent_values=record)
             discount_mappers.append(mapper)
         return discount_mappers
+
+    def _sale_order_exists(self, name):
+        ids = self.session.search('sale.order', [
+            ('name', '=', name),
+            ('company_id', '=', self.backend_record.company_id.id),
+        ])
+        return len(ids) == 1
+
+    @mapping
+    def name(self, record):
+        basename = record['reference']
+        if not self._sale_order_exists(basename):
+            return {"name": basename}
+        i = 1
+        name = basename + '_%d' % (i)
+        while self._sale_order_exists(name):
+            i += 1
+            name = basename + '_%d' % (i)
+        return {"name": name}
 
     @mapping
     def shipping(self, record):
@@ -499,7 +530,23 @@ class SaleOrderLineMapper(PrestashopImportMapper):
                 'prestashop.product.product',
                 record['product_id']
             )
+            if product_id is None:
+                return self.tax_id(record)
         return {'product_id': product_id}
+
+    def tax_id(self, record):
+        taxes = record.get('associations', {}).get('taxes', {}).get('tax', [])
+        if not isinstance(taxes, list):
+            taxes = [taxes]
+        result = []
+        for tax in taxes:
+            binder = self.get_binder_for_model('prestashop.account.tax')
+            openerp_id = binder.to_openerp(tax['id'])
+            if openerp_id:
+                result.append(openerp_id)
+        if result:
+            return {'tax_id': (6, 0, result)}
+        return {}
 
     @mapping
     def backend_id(self, record):
