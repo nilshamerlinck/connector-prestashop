@@ -412,6 +412,33 @@ class SaleOrderImport(PrestashopImportSynchronizer):
         rules = self.get_connector_unit_for_model(SaleImportRule)
         return rules.check(self.prestashop_record)
 
+    def _create_payment(self, erp_id):
+        #TODO for now we only support one journal
+        #the day that a customer need more than one journal
+        #we will implement it
+        sess = self.session
+        presta_sale = sess.browse(self.model._name, erp_id)
+        if not presta_sale.payment_method_id.journal_id:
+            return
+        sale_obj = sess.pool['sale.order']
+        payment_adapter = self.get_connector_unit_for_model(
+            GenericAdapter,
+            '__not_exist_prestashop.payment'
+        )
+        payment_ids = payment_adapter.search({
+            'filter[order_reference]': self.prestashop_record['reference']
+        })
+        for payment_id in payment_ids:
+            payment = payment_adapter.read(payment_id)
+            amount = float(payment['amount'])
+            cr, uid, context = sess.cr, sess.uid, sess.context
+            sale_obj.automatic_payment(cr, uid, presta_sale.openerp_id.id,
+                                       amount, context=context)
+
+    def _after_import(self, erp_id):
+        self._create_payment(erp_id)
+
+
 
 @prestashop
 class TranslatableRecordImport(PrestashopImportSynchronizer):
