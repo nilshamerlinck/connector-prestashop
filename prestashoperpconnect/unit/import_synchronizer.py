@@ -36,6 +36,8 @@ from .exception import OrderImportRuleRetry
 from openerp.addons.connector.exception import FailedJobError
 from ..connector import get_environment, add_checkpoint
 
+from prestapyt import PrestaShopWebServiceError
+
 _logger = logging.getLogger(__name__)
 
 
@@ -397,8 +399,11 @@ class SaleOrderImport(PrestashopImportSynchronizer):
         if isinstance(orders, dict):
             orders = [orders]
         for order in orders:
-            self._check_dependency(order['product_id'],
-                                   'prestashop.product.product')
+            try:
+                self._check_dependency(order['product_id'],
+                                       'prestashop.product.product')
+            except PrestaShopWebServiceError:
+                pass
 
     def _has_to_skip(self):
         """ Return True if the import can be skipped """
