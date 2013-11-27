@@ -541,11 +541,11 @@ class SaleOrderLineMapper(PrestashopImportMapper):
         result = []
         for tax in taxes:
             binder = self.get_binder_for_model('prestashop.account.tax')
-            openerp_id = binder.to_openerp(tax['id'])
+            openerp_id = binder.to_openerp(tax['id'], unwrap=True)
             if openerp_id:
                 result.append(openerp_id)
         if result:
-            return {'tax_id': (6, 0, result)}
+            return {'tax_id': [(6, 0, result)]}
         return {}
 
     @mapping
