@@ -313,7 +313,7 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
             'data_account_type_payable'
         )
         data = {
-            'code': '411' + prestashop_id,
+            'code': '411PS' + prestashop_id,
             'name': name,
             'parent_id': parent_ids[0],
             'type': 'receivable',
