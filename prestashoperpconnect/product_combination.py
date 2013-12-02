@@ -297,7 +297,24 @@ class ProductCombinationOptionRecordImport(PrestashopImportSynchronizer):
             )
 
     def run(self, ext_id):
-        super(ProductCombinationOptionRecordImport, self).run(ext_id)
+        # si on trouve un attribute.attribute dont le nom est le meme
+        self.prestashop_id = ext_id
+        self.prestashop_record = self._get_prestashop_data()
+        field_name = self.mapper.name(self.prestashop_record)['name']
+        attribute_ids = self.session.search('attribute.attribute', [('name', '=', field_name)])
+        if len(attribute_ids) == 0:
+            # on cree completement le prestashop_product_combination
+            super(ProductCombinationOptionRecordImport, self).run(ext_id)
+        else:
+            # on ne cree qu'un prestashop.product.combination.option avec le 
+            # champ openerp_id
+            context = self._context()
+            data = {
+                'openerp_id': attribute_ids[0],
+                'backend_id': self.backend_record.id,
+            }
+            erp_id = self.model.create(self.session.cr, self.session.uid, data, context)
+            self.binder.bind(self.prestashop_id, erp_id)
 
         self._import_values()
 
