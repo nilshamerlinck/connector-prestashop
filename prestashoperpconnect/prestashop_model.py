@@ -199,6 +199,14 @@ class prestashop_backend(orm.Model):
             import_batch.delay(session, 'payment.method', backend_record.id)
         return True
 
+    def import_refunds(self, cr, uid, ids, context=None):
+        if not hasattr(ids, '__iter__'):
+            ids = [ids]
+        session = ConnectorSession(cr, uid, context=context)
+        for backend_record in self.browse(cr, uid, ids, context=context):
+            import_batch.delay(session, 'prestashop.refund', backend_record.id)
+        return True
+
     def _scheduler_launch(self, cr, uid, callback, domain=None,
                           context=None):
         if domain is None:

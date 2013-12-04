@@ -248,6 +248,7 @@ class DelayedBatchImport(BatchImportSynchronizer):
         'prestashop.product.category',
         'prestashop.product.product',
         'prestashop.sale.order',
+        'prestashop.refund',
     ]
 
     def _import_record(self, record, **kwargs):
