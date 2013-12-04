@@ -301,6 +301,14 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
         self.create_account(self.prestashop_record['id'], name)
 
     def create_account(self, prestashop_id, name):
+        account = self.session.search('account.account', [
+            ('company_id', '=', self.backend_record.company_id.id),
+            ('code', '=', '411PS' + prestashop_id)
+        ])
+        if len(account) == 1:
+            self.account_id = account[0]
+            return
+        
         parent_ids = self.session.search('account.account', [
             ('company_id', '=', self.backend_record.company_id.id),
             ('code', '=', '411')
