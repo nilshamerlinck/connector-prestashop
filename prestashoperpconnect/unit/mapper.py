@@ -24,6 +24,8 @@
 ##############################################################################
 from decimal import Decimal
 
+from decimal import Decimal
+
 from openerp.tools.translate import _
 from openerp.addons.connector.unit.mapper import (
     mapping,
@@ -321,6 +323,54 @@ class SaleOrderMapper(PrestashopImportMapper):
             mapper.convert_child(detail_record, parent_values=record)
             self._data_children[to_attr].append(mapper)
 
+        discount_lines = self._get_discounts_lines(record)
+        self._data_children[to_attr].extend(discount_lines)
+
+    def _get_amount_by_tax(self):
+        amount_by_tax = {}
+        order_line_mappers = self._data_children['prestashop_order_line_ids']
+        for mapper in order_line_mappers:
+            sale_order_line = mapper.data
+            product = self.session.browse('prestashop.product.product',
+                                          sale_order_line['product_id'])
+            key = tuple(product.taxes_id)
+            if key in amount_by_tax:
+                amount_by_tax[key] += Decimal(sale_order_line['price_unit'])
+            else:
+                amount_by_tax[key] = Decimal(sale_order_line['price_unit'])
+        return amount_by_tax
+
+    def _get_discounts_lines(self, record):
+        if record['total_discounts'] == '0.00':
+            return []
+        adapter = self.get_connector_unit_for_model(
+            GenericAdapter, 'prestashop.sale.order.line.discount')
+        discount_ids = adapter.search({'filter[id_order]': record['id']})
+        discount_mappers = []
+        amount_by_tax = self._get_amount_by_tax()
+        total_amount = sum(amount_by_tax.values())
+        for discount_id in discount_ids:
+            discount_lines = self._get_discount_lines(discount_id,
+                amount_by_tax, total_amount, record)
+            discount_mappers.extend(discount_lines)
+        return discount_mappers
+
+    def _get_discount_lines(self, discount_id, amount_by_tax, total_amount,
+                            record):
+        adapter = self.get_connector_unit_for_model(
+            GenericAdapter, 'prestashop.sale.order.line.discount')
+        discount = adapter.read(discount_id)
+        mappers = []
+        for taxes_id, amount in amount_by_tax.items():
+            mapper = self._init_child_mapper(
+                'prestashop.sale.order.line.discount')
+            mapper.taxes_id = taxes_id
+            mapper.total_amount = total_amount
+            mapper.amount = amount
+            mapper.convert_child(discount, parent_values=record)
+            mappers.append(mapper)
+        return mappers
+
     @mapping
     def shipping(self, record):
         shipping_tax_incl = float(record['total_shipping_tax_incl'])
@@ -452,6 +502,47 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     @mapping
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
+
+
+@prestashop
+class SaleOrderLineDiscount(PrestashopImportMapper):
+    _model_name = 'prestashop.sale.order.line.discount'
+    
+    direct = []
+
+    @mapping
+    def discount(self, record):
+        if self.backend_record.taxes_included:
+            key = 'value'
+        else:
+            key = 'value_tax_excl'
+        base_price = Decimal(record[key])
+        price_unit = -1 * base_price * self.amount / self.total_amount
+        return {
+            'name': _('Discount %s') % (record['name']),
+            'product_uom_qty': 1,
+            'price_unit': price_unit,
+        }
+
+    @mapping
+    def product_id(self, record):
+        data_obj = self.session.pool.get('ir.model.data')
+        model_name, product_id = data_obj.get_object_reference(
+            self.session.cr,
+            self.session.uid,
+            'connector_ecommerce',
+            'product_product_discount'
+        )
+        return {'product_id': product_id}
+
+    @mapping
+    def backend_id(self, record):
+        return {'backend_id': self.backend_record.id}
+
+    @mapping
+    def tax_id(self, record):
+        taxes_id = [tax.id for tax in self.taxes_id]
+        return {'tax_id': [(6, 0, taxes_id)]}
 
 
 @prestashop
