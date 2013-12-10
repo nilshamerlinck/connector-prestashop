@@ -28,7 +28,7 @@ class account_invoice(orm.Model):
     def action_move_create(self, cr, uid, ids, context=None):
         so_obj = self.pool.get('prestashop.sale.order')
         line_replacement = {}
-        for invoice in self.browse(cr, uid, invoice_id, context=context):
+        for invoice in self.browse(cr, uid, ids, context=context):
             so_ids = so_obj.search(cr, uid, [('name', '=', invoice.origin)])
             if not so_ids:
                 continue
@@ -97,6 +97,9 @@ class RefundImport(PrestashopImportSynchronizer):
     def _after_import(self, erp_id):
         invoice_obj = self.session.pool.get('account.invoice')
         invoice_obj.button_reset_taxes(self.session.cr, self.session.uid, [erp_id], context=self.session.context)
+
+        invoice = self.session.browse('account.invoice', erp_id)
+        assert invoice.amount_total == float(self.prestashop_record['amount'])
 
         wf_service = netsvc.LocalService("workflow")
         wf_service.trg_validate(self.session.uid, 'account.invoice',
