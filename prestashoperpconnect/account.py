@@ -25,6 +25,39 @@ class account_invoice(orm.Model):
         ),
     }
 
+    def action_move_create(self, cr, uid, ids, context=None):
+        so_obj = self.pool.get('prestashop.sale.order')
+        line_replacement = {}
+        for invoice in self.browse(cr, uid, invoice_id, context=context):
+            so_ids = so_obj.search(cr, uid, [('name', '=', invoice.origin)])
+            if not so_ids:
+                continue
+            sale_order = so_obj.browse(cr, uid, so_ids[0])
+            discount_product_id = sale_order.backend_id.discount_product_id.id
+
+            for invoice_line in invoice.invoice_line:
+                if invoice_line.product_id != dicount_product_id:
+                    continue
+                amount = invoice_line.price_subtotal
+                self.pool.get('account.invoice.line').unlink(cr, uid, invoice_line.id)
+                refund_id = self._find_refund(cr, uid, amount, context=context)
+                if refund_id:
+                    line_replacement[invoice_line.id] = refund_id
+
+        result = super(account_invoice, self).action_move_create(cr, uid, ids, context=None)
+        ## reconcile invoice with refund
+        return result
+
+    def _find_refund(self, cr, uid, amount, context=None):
+        ids = self.search(cr, uid, [
+            ('amount_total', '=', amount),
+            ('type', '=', 'out_refund'),
+            ('state', '=', 'open'),
+        ])
+        if not ids:
+            return None
+        return ids[0]
+
 
 class prestashop_refund(orm.Model):
     _name = 'prestashop.refund'
