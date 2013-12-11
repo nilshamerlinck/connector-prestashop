@@ -502,6 +502,10 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     ]
 
     @mapping
+    def prestashop_id(self, record):
+        return {'prestashop_id': record['id']}
+
+    @mapping
     def price_unit(self, record):
         if self.backend_record.taxes_included:
             key = 'unit_price_tax_incl'
@@ -578,6 +582,44 @@ class SaleOrderLineDiscount(PrestashopImportMapper):
         if self.backend_record.taxes_included:
             return {'price_unit': '-%s' % (record['value'])}
         return {'price_unit': '-%s' % (record['value_tax_excl'])}
+
+    @mapping
+    def product_id(self, record):
+        if self.backend_record.discount_product_id:
+            return {'product_id': self.backend_record.discount_product_id.id}
+        data_obj = self.session.pool.get('ir.model.data')
+        model_name, product_id = data_obj.get_object_reference(
+            self.session.cr,
+            self.session.uid,
+            'connector_ecommerce',
+            'product_product_discount'
+        )
+        return {'product_id': product_id}
+
+    @mapping
+    def backend_id(self, record):
+        return {'backend_id': self.backend_record.id}
+
+
+@prestashop
+class SaleOrderLineDiscount(PrestashopImportMapper):
+    _model_name = 'prestashop.sale.order.line.discount'
+    
+    direct = []
+
+    @mapping
+    def discount(self, record):
+        return {
+            'name': _('Discount %s') % (record['name']),
+            'product_uom_qty': 1,
+        }
+
+    @mapping
+    def price_unit(self, record):
+        if self.backend_record.taxes_included:
+            return {'price_unit': '-%s' % (record['value'])}
+        return {'price_unit': '-%s' % (record['value_tax_excl'])}
+
 
     @mapping
     def product_id(self, record):

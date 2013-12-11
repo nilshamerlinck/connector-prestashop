@@ -232,6 +232,29 @@ class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
 
 
 @prestashop
+class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
+    _model_name = 'payment.method'
+
+    def run(self, filters=None, **kwargs):
+        if filters is None:
+            filters = {}
+        filters['display'] = '[id,payment]'
+        return super(PaymentMethodsImportSynchronizer, self).run(filters, **kwargs)
+
+    def _import_record(self, record):
+        ids = self.session.search('payment.method', [
+            ('name', '=', record['payment']),
+            ('company_id', '=', self.backend_record.company_id.id),
+        ])
+        if ids:
+            return
+        self.session.create('payment.method', {
+            'name': record['payment'],
+            'company_id': self.backend_record.company_id.id,
+        })
+
+
+@prestashop
 class DirectBatchImport(BatchImportSynchronizer):
     """ Import the PrestaShop Shop Groups + Shops
 
@@ -265,6 +288,7 @@ class DelayedBatchImport(BatchImportSynchronizer):
         'prestashop.product.category',
         'prestashop.product.product',
         'prestashop.sale.order',
+        'prestashop.refund',
     ]
 
     def _import_record(self, record, **kwargs):
