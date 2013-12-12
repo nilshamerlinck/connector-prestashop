@@ -86,13 +86,16 @@
                                     string="Import in background"/>
                         </group>
                         <group>
-                            <label string="Import product categories and products" class="oe_inline"/>
                             <div>
-                                <button name="import_products"
+                                <label string="Import product categories and products" class="oe_inline"/>
+                                <field name="import_products_since"
+                                       class="oe_inline"
+                                       nolabel="1"/>
+                            </div>
+                            <button name="import_products"
                                         type="object"
                                         class="oe_highlight"
                                         string="Import in background"/>
-                            </div>
                         </group>
                         <group>
                             <label string="Import carriers" class="oe_inline"/>
