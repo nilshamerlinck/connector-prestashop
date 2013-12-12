@@ -80,7 +80,7 @@ class account_invoice(orm.Model):
 
     def _find_refund(self, cr, uid, amount, partner_id, context=None):
         ids = self.search(cr, uid, [
-            ('amount_total', '=', amount),
+            ('amount_untaxed', '=', amount),
             ('type', '=', 'out_refund'),
             ('state', '=', 'open'),
             ('partner_id', '=', partner_id),
