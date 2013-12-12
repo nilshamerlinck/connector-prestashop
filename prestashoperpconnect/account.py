@@ -1,5 +1,7 @@
 # -*- encoding: utf-8 -*-
 
+from datetime import date
+from datetime import datetime
 from decimal import Decimal
 
 from openerp import netsvc
@@ -227,8 +229,14 @@ class RefundMapper(PrestashopImportMapper):
     def _invoice_line(self, record):
         order_line = self._get_order_line(record['id_order_detail'])
         tax_ids = []
-        for tax in order_line.tax_id:
-            tax_ids.append(tax.id)
+        if order_line is None:
+            product_id = None
+            name = "Order line not found"
+        else:
+            product_id = order_line.product_id.id
+            name = order_line.name
+            for tax in order_line.tax_id:
+                tax_ids.append(tax.id)
         if record['product_quantity'] == '0':
             quantity = 1
         else:
@@ -239,8 +247,8 @@ class RefundMapper(PrestashopImportMapper):
             price_unit = record['amount_tax_excl']
         return {
             'quantity': quantity,
-            'product_id': order_line.product_id.id,
-            'name': order_line.name,
+            'product_id': product_id,
+            'name': name,
             'invoice_line_tax_id': [(6, 0, tax_ids)],
             'price_unit': price_unit,
         }
@@ -250,6 +258,8 @@ class RefundMapper(PrestashopImportMapper):
             ('prestashop_id', '=', order_details_id),
             ('backend_id', '=', self.backend_record.id),
         ])
+        if not order_line_id:
+            return None
         context = self.session.context
         context['company_id'] = self.backend_record.company_id.id
         return self.session.pool.get('prestashop.sale.order.line').browse(
@@ -271,6 +281,13 @@ class RefundMapper(PrestashopImportMapper):
 
     @mapping
     def account_id(self, record):
+        binder = self.get_binder_for_model('prestashop.sale.order')
+        sale_order_id = binder.to_openerp(record['id_order'], unwrap=True)
+        sale_order = self.session.browse('prestashop.sale.order', sale_order_id)
+        date_invoice = datetime.strptime(record['date_upd'], '%Y-%m-%d %H:%M:%S')
+        if date(2014, 1, 1) > date_invoice.date() and \
+            sale_order.payment_method_id and sale_order.payment_method_id.account_id:
+            return {'account_id': sale_order.payment_method_id.account_id.id}
         context = self.session.context
         context['company_id'] = self.backend_record.company_id.id
         binder = self.get_binder_for_model('prestashop.res.partner')
