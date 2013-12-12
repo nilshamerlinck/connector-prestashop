@@ -37,6 +37,7 @@ from .unit.import_synchronizer import (
     import_customers_since,
     import_orders_since,
     import_products,
+    import_refunds,
     import_carriers)
 from .unit.direct_binder import DirectBinder
 from .connector import get_environment, add_checkpoint
@@ -79,6 +80,7 @@ class prestashop_backend(orm.Model):
         'import_partners_since': fields.datetime('Import partners since'),
         'import_orders_since': fields.datetime('Import Orders since'),
         'import_products_since': fields.datetime('Import Products since'),
+        'import_refunds_since': fields.datetime('Import Refunds since'),
         'language_ids': fields.one2many(
             'prestashop.res.lang',
             'backend_id',
@@ -212,7 +214,13 @@ class prestashop_backend(orm.Model):
             ids = [ids]
         session = ConnectorSession(cr, uid, context=context)
         for backend_record in self.browse(cr, uid, ids, context=context):
-            import_batch.delay(session, 'prestashop.refund', backend_record.id)
+            since_date = None
+            if backend_record.import_refunds_since:
+                since_date = datetime.strptime(
+                    backend_record.import_refunds_since,
+                    DEFAULT_SERVER_DATETIME_FORMAT
+                )
+            import_refunds.delay(session, backend_record.id, since_date)
         return True
 
     def _scheduler_launch(self, cr, uid, callback, domain=None,
@@ -246,6 +254,10 @@ class prestashop_backend(orm.Model):
 
     def _scheduler_import_payment_methods(self, cr, uid, domain=None, context=None):
         self._scheduler_launch(cr, uid, self.import_payment_methods,
+                               domain=domain, context=context)
+
+    def _scheduler_import_refunds(self, cr, uid, domain=None, context=None):
+        self._scheduler_launch(cr, uid, self.import_refunds,
                                domain=domain, context=context)
 
 
