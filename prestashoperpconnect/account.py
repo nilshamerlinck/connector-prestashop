@@ -7,6 +7,7 @@ from openerp.osv import fields
 from openerp.osv import orm
 
 from openerp.addons.connector.unit.mapper import mapping
+from openerp.addons.connector.unit.mapper import only_create
 
 from .backend import prestashop
 from .unit.backend_adapter import GenericAdapter
@@ -124,21 +125,38 @@ class RefundImport(PrestashopImportSynchronizer):
         self._check_dependency(record['id_customer'], 'prestashop.res.partner')
         self._check_dependency(record['id_order'], 'prestashop.sale.order')
 
-    def _after_import(self, erp_id):
+    def _after_import(self, refund_id):
+        context = self.session.context
+        context['company_id'] = self.backend_record.company_id.id
+        refund = self.session.browse('prestashop.refund', refund_id)
+        erp_id = refund.openerp_id.id
         invoice_obj = self.session.pool.get('account.invoice')
-        invoice_obj.button_reset_taxes(self.session.cr, self.session.uid, [erp_id], context=self.session.context)
+        invoice_obj.button_reset_taxes(
+            self.session.cr,
+            self.session.uid,
+            [erp_id],
+            context=context
+        )
 
         invoice = self.session.browse('account.invoice', erp_id)
-        assert invoice.amount_total == float(self.prestashop_record['amount'])
+        #assert invoice.amount_total == float(self.prestashop_record['amount']), (
+        #    'amounts in openerp (%f) and prestashop (%s) are not the same' % (
+        #        invoice.amount_total, self.prestashop_record['amount']))
 
-        wf_service = netsvc.LocalService("workflow")
-        wf_service.trg_validate(self.session.uid, 'account.invoice',
-                                erp_id, 'invoice_open', self.session.cr)
+        if invoice.amount_total == float(self.prestashop_record['amount']):
+            wf_service = netsvc.LocalService("workflow")
+            wf_service.trg_validate(self.session.uid, 'account.invoice',
+                                    erp_id, 'invoice_open', self.session.cr)
 
 
 @prestashop
 class RefundMapper(PrestashopImportMapper):
     _model_name = 'prestashop.refund'
+
+    direct = [
+        ('id', 'name'),
+        ('date_add', 'date_invoice'),
+    ]
 
     @mapping
     def journal_id(self, record):
@@ -149,13 +167,26 @@ class RefundMapper(PrestashopImportMapper):
         return {'journal_id': journal_ids[0]}
 
     @mapping
+    def origin(self, record):
+        binder = self.get_binder_for_model('prestashop.sale.order')
+        sale_order_id = binder.to_openerp(record['id_order'], unwrap=True)
+        sale_order = self.session.read('prestashop.sale.order', sale_order_id, ['name'])
+        return {'origin': sale_order['name']}
+
+    @mapping
+    def comment(self, record):
+        return {'comment': 'Montant dans prestashop : %s' % (record['amount'])}
+
+    @mapping
+    @only_create
     def invoice_lines(self, record):
         slip_details = record.get('associations', {}).get('order_slip_details', []).get('order_slip_detail', [])
         if isinstance(slip_details, dict):
             slip_details = [slip_details]
         lines = []
         shipping_line = self._invoice_line_shipping(record)
-        lines.append((0, 0, shipping_line))
+        if shipping_line is not None:
+            lines.append((0, 0, shipping_line))
         for slip_detail in slip_details:
             line = self._invoice_line(slip_detail)
             lines.append((0, 0, line))
@@ -163,6 +194,8 @@ class RefundMapper(PrestashopImportMapper):
 
     def _invoice_line_shipping(self, record):
         order_line = self._get_shipping_order_line(record)
+        if order_line is None:
+            return None
         return {
             'quantity': 1,
             'product_id': order_line['product_id'][0],
@@ -177,21 +210,29 @@ class RefundMapper(PrestashopImportMapper):
         sale_order_id = binder.to_openerp(record['id_order'], unwrap=True)
         sale_order = self.session.browse('prestashop.sale.order', sale_order_id)
 
+        if not sale_order.carrier_id:
+            return None
+
         sale_order_line_ids = self.session.search('sale.order.line', [
             ('order_id', '=', sale_order_id),
             ('product_id', '=', sale_order.carrier_id.product_id.id),
         ])
+        if not sale_order_line_ids:
+            return None
         return self.session.read('sale.order.line', sale_order_line_ids[0], [])
 
     def _invoice_line(self, record):
         order_line = self._get_order_line(record['id_order_detail'])
+        tax_ids = []
+        for tax in order_line.tax_id:
+            tax_ids.append(tax.id)
         return {
             'quantity': record['product_quantity'],
-            'product_id': order_line['product_id'][0],
-            'name': order_line['name'],
-            'invoice_line_tax_id': [(6, 0, order_line['tax_id'])],
-            'price_unit': order_line['price_unit'],
-            'discount': order_line['discount'],
+            'product_id': order_line.product_id.id,
+            'name': order_line.name,
+            'invoice_line_tax_id': [(6, 0, tax_ids)],
+            'price_unit': order_line.price_unit,
+            'discount': order_line.discount,
         }
 
     def _get_order_line(self, order_details_id):
@@ -199,8 +240,14 @@ class RefundMapper(PrestashopImportMapper):
             ('prestashop_id', '=', order_details_id),
             ('backend_id', '=', self.backend_record.id),
         ])
-        return self.session.read('prestashop.sale.order.line',
-                                 order_line_id[0], [])
+        context = self.session.context
+        context['company_id'] = self.backend_record.company_id.id
+        return self.session.pool.get('prestashop.sale.order.line').browse(
+            self.session.cr,
+            self.session.uid,
+            order_line_id[0],
+            context=context
+        )
 
     @mapping
     def type(self, record):
@@ -214,9 +261,16 @@ class RefundMapper(PrestashopImportMapper):
 
     @mapping
     def account_id(self, record):
+        context = self.session.context
+        context['company_id'] = self.backend_record.company_id.id
         binder = self.get_binder_for_model('prestashop.res.partner')
         partner_id = binder.to_openerp(record['id_customer'])
-        partner = self.session.browse('prestashop.res.partner', partner_id)
+        partner = self.session.pool['prestashop.res.partner'].browse(
+            self.session.cr,
+            self.session.uid,
+            partner_id,
+            context=context
+        )
         return {'account_id': partner.property_account_receivable.id}
 
     @mapping
