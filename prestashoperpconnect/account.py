@@ -226,13 +226,20 @@ class RefundMapper(PrestashopImportMapper):
         tax_ids = []
         for tax in order_line.tax_id:
             tax_ids.append(tax.id)
+        if record['product_quantity'] == '0':
+            quantity = 1
+        else:
+            quantity = record['product_quantity']
+        if self.backend_record.taxes_included:
+            price_unit = record['amount_tax_incl']
+        else:
+            price_unit = record['amount_tax_excl']
         return {
-            'quantity': record['product_quantity'],
+            'quantity': quantity,
             'product_id': order_line.product_id.id,
             'name': order_line.name,
             'invoice_line_tax_id': [(6, 0, tax_ids)],
-            'price_unit': order_line.price_unit,
-            'discount': order_line.discount,
+            'price_unit': price_unit,
         }
 
     def _get_order_line(self, order_details_id):
