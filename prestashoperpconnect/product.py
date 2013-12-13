@@ -23,7 +23,11 @@ import datetime
 import mimetypes
 import json
 
+from openerp import SUPERUSER_ID
 from openerp.osv import fields, orm
+
+from openerp.addons.product.product import check_ean
+
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.event import on_record_write
 from openerp.addons.connector.unit.synchronizer import (ExportSynchronizer)
@@ -228,25 +232,10 @@ class ProductMapper(PrestashopImportMapper):
 
     def _product_code_exists(self, code):
         model = self.session.pool.get('product.product')
-        product_ids = model.search(self.session.cr, self.session.uid, [
+        product_ids = model.search(self.session.cr, SUPERUSER_ID, [
             ('default_code', '=', code)
         ])
         return len(product_ids) > 0
-
-    @mapping
-    def image(self, record):
-        if record['id_default_image']['value'] == '':
-            return {}
-        adapter = self.get_connector_unit_for_model(
-            PrestaShopCRUDAdapter,
-            'prestashop.product.image'
-        )
-        try:
-            image = adapter.read(record['id'],
-                                 record['id_default_image']['value'])
-            return {"image": image['content']}
-        except PrestaShopWebServiceError:
-            return {}
 
     @mapping
     def default_code(self, record):
@@ -308,10 +297,11 @@ class ProductMapper(PrestashopImportMapper):
 
     @mapping
     def ean13(self, record):
-        #TODO who is the reference data prestashop ean13 or prestatshop ean13 ?
-        if record['ean13'] == '0':
+        if record['ean13'] in ['', '0']:
             return {}
-        return {'ean13': record['ean13']}
+        if check_ean(record['ean13']):
+            return {'ean13': record['ean13']}
+        return {}
 
     @mapping
     def taxes_id(self, record):

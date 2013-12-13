@@ -10,6 +10,7 @@ from openerp.addons.connector.unit.backend_adapter import BackendAdapter
 from openerp.addons.connector.unit.mapper import mapping
 from openerp.osv.orm import browse_record_list
 
+from openerp.addons.product.product import check_ean
 
 class product_product(orm.Model):
     _inherit = 'product.product'
@@ -242,9 +243,11 @@ class ProductCombinationMapper(PrestashopImportMapper):
 
     @mapping
     def ean13(self, record):
-        if record['ean13'] == '0':
+        if record['ean13'] in ['', '0']:
             return {}
-        return {'ean13': record['ean13']}
+        if check_ean(record['ean13']):
+            return {'ean13': record['ean13']}
+        return {}
 
 
 class attribute_attribute(orm.Model):
