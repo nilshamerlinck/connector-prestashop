@@ -200,12 +200,14 @@ class RefundMapper(PrestashopImportMapper):
             price_unit = order_line['price_unit']
         else:
             price_unit = record['shipping_cost_amount']
+        if price_unit in [0.0, '0.00']:
+            return None
         return {
             'quantity': 1,
             'product_id': order_line['product_id'][0],
             'name': order_line['name'],
             'invoice_line_tax_id': [(6, 0, order_line['tax_id'])],
-            'price_unit': record['shipping_cost_amount'],
+            'price_unit': price_unit,
             'discount': order_line['discount'],
         }
 
@@ -244,15 +246,21 @@ class RefundMapper(PrestashopImportMapper):
             price_unit = record['amount_tax_incl']
         else:
             price_unit = record['amount_tax_excl']
+        try:
+            price_unit = float(price_unit) / float(quantity)
+        except ValueError:
+            pass
+        discount = False
         if price_unit in ['0.00', ''] and order_line is not None:
             price_unit = order_line['price_unit']
-
+            discount = order_line['discount']
         return {
             'quantity': quantity,
             'product_id': product_id,
             'name': name,
             'invoice_line_tax_id': [(6, 0, tax_ids)],
             'price_unit': price_unit,
+            'discount': discount,
         }
 
     def _get_order_line(self, order_details_id):
