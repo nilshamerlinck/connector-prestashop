@@ -22,7 +22,7 @@ class account_invoice(orm.Model):
 
     _columns = {
         'prestashop_bind_ids': fields.one2many(
-            'prestashop.account.invoice',
+            'prestashop.refund',
             'openerp_id',
             string="Prestashop Bindings"
         ),
@@ -103,11 +103,6 @@ class prestashop_refund(orm.Model):
             string='Invoice',
             required=True,
             ondelete='cascade',
-        ),
-        'prestashop_refund_ids': fields.one2many(
-            'prestashop.refund.line',
-            'prestashop_refund_id',
-            'Prestashop refund lines'
         ),
     }
 
@@ -201,6 +196,10 @@ class RefundMapper(PrestashopImportMapper):
         order_line = self._get_shipping_order_line(record)
         if order_line is None:
             return None
+        if record['shipping_cost'] == '1':
+            price_unit = order_line['price_unit']
+        else:
+            price_unit = record['shipping_cost_amount']
         return {
             'quantity': 1,
             'product_id': order_line['product_id'][0],
@@ -245,6 +244,9 @@ class RefundMapper(PrestashopImportMapper):
             price_unit = record['amount_tax_incl']
         else:
             price_unit = record['amount_tax_excl']
+        if price_unit in ['0.00', ''] and order_line is not None:
+            price_unit = order_line['price_unit']
+
         return {
             'quantity': quantity,
             'product_id': product_id,
