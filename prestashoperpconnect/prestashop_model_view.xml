@@ -43,6 +43,7 @@
                     <field name="warehouse_id"/>
                     <field name="taxes_included"/>
                     <field name="discount_product_id" />
+                    <field name="shipping_product_id" />
                 </group>
                 <notebook>
                     <page name="import" string="Imports">
