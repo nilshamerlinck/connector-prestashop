@@ -328,7 +328,7 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
     def create_account(self, prestashop_id, name):
         account = self.session.search('account.account', [
             ('company_id', '=', self.backend_record.company_id.id),
-            ('code', '=', '411%05d' % prestashop_id)
+            ('code', '=', '411%05d' % int(prestashop_id))
         ])
         if len(account) == 1:
             self.account_id = account[0]
@@ -347,7 +347,7 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
             'data_account_type_payable'
         )
         data = {
-            'code': '411%05d' % prestashop_id,
+            'code': '411%05d' % int(prestashop_id),
             'name': name,
             'parent_id': parent_ids[0],
             'type': 'receivable',
