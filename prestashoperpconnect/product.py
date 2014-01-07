@@ -354,7 +354,7 @@ class ProductMapper(PrestashopImportMapper):
             ('company_id', '=', self.backend_record.company_id.id),
         ])
         if tax_ids:
-            return {'supplier_taxes_id', [(6, 0, tax_ids)]}
+            return {'supplier_taxes_id': [(6, 0, tax_ids)]}
 
 
 class product_product(orm.Model):
@@ -422,7 +422,7 @@ class prestashop_product_product(orm.Model):
         'link_rewrite': fields.char(
             'Friendly URL',
             translate=True,
-            required=True,
+            required=False,
         ),
         'combinations_ids': fields.one2many(
             'prestashop.product.combination',
