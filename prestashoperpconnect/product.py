@@ -347,6 +347,15 @@ class ProductMapper(PrestashopImportMapper):
             return {"type": 'service'}
         return {"type": 'product'}
 
+    @mapping
+    def supplier_taxes_id(self, record):
+        tax_ids = self.session.search('account.tax', [
+            ('description', '=', 'ACH-20.0'),
+            ('company_id', '=', self.backend_record.company_id.id),
+        ])
+        if tax_ids:
+            return {'supplier_taxes_id', [(6, 0, tax_ids)]}
+
 
 class product_product(orm.Model):
     _inherit = 'product.product'
