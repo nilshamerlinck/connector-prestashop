@@ -62,15 +62,19 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
             'product_option_values', {}).get('product_option_value', [])
         if not isinstance(option_values, list):
             option_values = [option_values]
+        backend_adapter = self.get_connector_unit_for_model(
+            BackendAdapter,
+            'prestashop.product.combination.option.value'
+        )
         for option_value in option_values:
-            backend_adapter = self.get_connector_unit_for_model(
-                BackendAdapter,
-                'prestashop.product.combination.option.value'
-            )
             option_value = backend_adapter.read(option_value['id'])
             self._check_dependency(
                 option_value['id_attribute_group'],
                 'prestashop.product.combination.option',
+            )
+            self._check_dependency(
+                option_value['id'],
+                'prestashop.product.combination.option.value'
             )
 
             self.check_location(option_value)
