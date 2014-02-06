@@ -31,6 +31,7 @@ from openerp.addons.connector.unit.mapper import (
     ExportMapper
 )
 from ..backend import prestashop
+from ..connector import add_checkpoint
 from backend_adapter import GenericAdapter
 from openerp.addons.connector_ecommerce.unit.sale_order_onchange import (
     SaleOrderOnChange)
@@ -236,17 +237,24 @@ class AddressImportMapper(PrestashopImportMapper):
             record['id_customer']
         )
         if record['vat_number']:
-            vat_number = record['vat_number'].replace('.', '')
+            vat_number = record['vat_number'].replace('.', '').replace(' ', '')
             if self._check_vat(vat_number):
                 self.session.write(
                     'res.partner',
                     [parent_id],
                     {'vat': vat_number}
                 )
+            else:
+                add_checkpoint(
+                    self.session,
+                    'res.partner',
+                    parent_id,
+                    self.backend_record.id
+                )
         return {'parent_id': parent_id}
 
     def _check_vat(self, vat):
-        vat_country, vat_number = vat[:2].lower(), vat[2:].replace(' ', '')
+        vat_country, vat_number = vat[:2].lower(), vat[2:]
         return self.session.pool['res.partner'].simple_vat_check(
             self.session.cr,
             self.session.uid,
@@ -533,7 +541,7 @@ class SaleOrderLineMapper(PrestashopImportMapper):
                 'prestashop.product.combination')
             product_id = combination_binder.to_openerp(
                 record['product_attribute_id'],
-                True
+                unwrap=True
             )
         else:
             product_id = self.get_openerp_id(

@@ -36,10 +36,11 @@ from backend_adapter import GenericAdapter
 from .exception import OrderImportRuleRetry
 from openerp.addons.connector.exception import FailedJobError
 from openerp.addons.connector.exception import NothingToDoJob
-from ..connector import get_environment, add_checkpoint
 from backend_adapter import PrestaShopCRUDAdapter
 
 from prestapyt import PrestaShopWebServiceError
+from ..connector import add_checkpoint
+
 
 _logger = logging.getLogger(__name__)
 
@@ -235,29 +236,6 @@ class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
 
 
 @prestashop
-class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
-    _model_name = 'payment.method'
-
-    def run(self, filters=None, **kwargs):
-        if filters is None:
-            filters = {}
-        filters['display'] = '[id,payment]'
-        return super(PaymentMethodsImportSynchronizer, self).run(filters, **kwargs)
-
-    def _import_record(self, record):
-        ids = self.session.search('payment.method', [
-            ('name', '=', record['payment']),
-            ('company_id', '=', self.backend_record.company_id.id),
-        ])
-        if ids:
-            return
-        self.session.create('payment.method', {
-            'name': record['payment'],
-            'company_id': self.backend_record.company_id.id,
-        })
-
-
-@prestashop
 class DirectBatchImport(BatchImportSynchronizer):
     """ Import the PrestaShop Shop Groups + Shops
 
@@ -310,8 +288,8 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
     _model_name = 'prestashop.res.partner'
 
     def _import_dependencies(self):
-        groups = self.prestashop_record.get('associations', {}).get(
-            'groups', {}).get('group', [])
+        groups = self.prestashop_record.get('associations', {})\
+            .get('groups', {}).get('group', [])
         if not isinstance(groups, list):
             groups = [groups]
         for group in groups:
@@ -532,7 +510,6 @@ class SaleOrderImport(PrestashopImportSynchronizer):
 
     def _after_import(self, erp_id):
         self._create_payment(erp_id)
-
 
 
 @prestashop
@@ -779,20 +756,12 @@ class ProductRecordImport(TranslatableRecordImport):
             'name': name + ' Options',
             'attribute_group_ids': [(0, 0,  attribute_group)],
         }
-        model = self.environment.session.pool.get('attribute.set')
-        attribute_set_id = model.create(
-            self.session.cr,
-            self.session.uid,
-            attribute_set
-        )
+        attribute_set_id = self.session.create('attribute.set', attribute_set)
         self.prestashop_record['attribute_set_id'] = attribute_set_id
 
     def get_product_model_id(self):
-        model = self.environment.session.pool.get('ir.model')
-        ids = model.search(
-            self.session.cr,
-            self.session.uid,
-            [('model', '=', 'product.product')]
+        ids = self.session.search('ir.model', [
+            ('model', '=', 'product.product')]
         )
         assert len(ids) == 1
         return ids[0]

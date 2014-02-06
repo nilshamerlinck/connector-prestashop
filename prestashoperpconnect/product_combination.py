@@ -1,3 +1,15 @@
+'''
+A product combination is a product with different attributes in prestashop.
+In prestashop, we can sell a product or a combination of a product with some
+attributes.
+
+For example, for the iPod product we can found in demo data, it has some
+combinations with different colors and different storage size.
+
+We map that in OpenERP to a product.product with an attribute.set defined for
+the main product.
+'''
+
 from unidecode import unidecode
 
 from openerp import SUPERUSER_ID
@@ -83,23 +95,20 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
         option_binder = self.get_binder_for_model(
             'prestashop.product.combination.option')
         attribute_id = option_binder.to_openerp(
-            option_value['id_attribute_group'], True)
+            option_value['id_attribute_group'], unwrap=True)
         product = self.mapper.main_product(self.prestashop_record)
         attribute_group_id = product.attribute_set_id.attribute_group_ids[0].id
 
-        attribute_location_model = self.session.pool.get('attribute.location')
-        attribute_location_ids = attribute_location_model.search(
-            self.session.cr,
-            self.session.uid,
+        attribute_location_ids = self.session.search(
+            'attribute.location',
             [
                 ('attribute_id', '=', attribute_id),
                 ('attribute_group_id', '=', attribute_group_id)
             ]
         )
         if not attribute_location_ids:
-            attribute_location_model.create(
-                self.session.cr,
-                self.session.uid,
+            self.session.create(
+                'attribute.location',
                 {
                     'attribute_id': attribute_id,
                     'attribute_group_id': attribute_group_id,
@@ -125,7 +134,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
         'company_id',
         'image_medium',
     ]
-            
+
     @mapping
     def from_main_product(self, record):
         main_product = self.main_product(record)
@@ -147,12 +156,9 @@ class ProductCombinationMapper(PrestashopImportMapper):
     def main_product(self, record):
         if hasattr(self, '_main_product'):
             return self._main_product
-        product_model = self.environment.session.pool.get(
-            'prestashop.product.product')
         product_id = self.get_main_product_id(record)
-        self._main_product = product_model.browse(
-            self.session.cr,
-            self.session.uid,
+        self._main_product = self.session.browse(
+            'prestashop.product.product',
             product_id
         )
         return self._main_product
@@ -182,11 +188,8 @@ class ProductCombinationMapper(PrestashopImportMapper):
             option_value_openerp_id = option_value_binder.to_openerp(
                 option_value['id'])
 
-            option_value_model = self.environment.session.pool.get(
-                'prestashop.product.combination.option.value')
-            option_value_object = option_value_model.browse(
-                self.session.cr,
-                self.session.uid,
+            option_value_object = self.session.browse(
+                'prestashop.product.combination.option.value',
                 option_value_openerp_id
             )
             yield option_value_object
@@ -305,17 +308,16 @@ class ProductCombinationOptionRecordImport(PrestashopImportSynchronizer):
             )
 
     def run(self, ext_id):
-        # si on trouve un attribute.attribute dont le nom est le meme
+        # looking for an attribute.attribute with the same name
         self.prestashop_id = ext_id
         self.prestashop_record = self._get_prestashop_data()
         field_name = self.mapper.name(self.prestashop_record)['name']
         attribute_ids = self.session.search('attribute.attribute', [('name', '=', field_name)])
         if len(attribute_ids) == 0:
-            # on cree completement le prestashop_product_combination
+            # if we don't find it, we create a prestashop_product_combination
             super(ProductCombinationOptionRecordImport, self).run(ext_id)
         else:
-            # on ne cree qu'un prestashop.product.combination.option avec le 
-            # champ openerp_id
+            # else, we create only a prestashop.product.combination.option
             context = self._context()
             data = {
                 'openerp_id': attribute_ids[0],
@@ -337,12 +339,8 @@ class ProductCombinationOptionMapper(PrestashopImportMapper):
 
     @mapping
     def model_id(self, record):
-        model = self.environment.session.pool.get('ir.model')
-        ids = model.search(
-            self.session.cr,
-            self.session.uid,
-            [('model', '=', 'product.product')]
-        )
+        ids = self.session.search('ir.model',
+                                  [('model', '=', 'product.product')])
         assert len(ids) == 1
         return {'model_id': ids[0], 'model': 'product.product'}
 
@@ -355,16 +353,14 @@ class ProductCombinationOptionMapper(PrestashopImportMapper):
         name = None
         if 'language' in record['name']:
             language_binder = self.get_binder_for_model('prestashop.res.lang')
-            model = self.environment.session.pool.get('prestashop.res.lang')
             languages = record['name']['language']
-            if type(languages) != list:
+            if not isinstance(languages, list):
                 languages = [languages]
             for lang in languages:
                 erp_language_id = language_binder.to_openerp(
                     lang['attrs']['id'])
-                erp_lang = model.read(
-                    self.session.cr,
-                    self.session.uid,
+                erp_lang = self.session.read(
+                    'prestashop.res.lang',
                     erp_language_id,
                 )
                 if erp_lang['code'] == 'en_US':
@@ -433,7 +429,8 @@ class ProductCombinationOptionValueMapper(PrestashopImportMapper):
     def attribute_id(self, record):
         binder = self.get_binder_for_model(
             'prestashop.product.combination.option')
-        attribute_id = binder.to_openerp(record['id_attribute_group'], True)
+        attribute_id = binder.to_openerp(record['id_attribute_group'],
+                                         unwrap=True)
         return {'attribute_id': attribute_id}
 
     @mapping
