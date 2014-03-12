@@ -139,16 +139,8 @@ class RefundImport(PrestashopImportSynchronizer):
         invoice = self.session.browse('account.invoice', erp_id)
         if invoice.amount_total == float(self.prestashop_record['amount']):
             wf_service = netsvc.LocalService("workflow")
-            try:
-                wf_service.trg_validate(self.session.uid, 'account.invoice',
-                                        erp_id, 'invoice_open', self.session.cr)
-            except:
-                add_checkpoint(
-                    self.session,
-                    'account.invoice',
-                    erp_id,
-                    self.backend_record.id
-                )
+            wf_service.trg_validate(self.session.uid, 'account.invoice',
+                                    erp_id, 'invoice_open', self.session.cr)
         else:
             add_checkpoint(
                 self.session,
@@ -178,14 +170,17 @@ class RefundMapper(PrestashopImportMapper):
     def _get_order(self, record):
         binder = self.get_binder_for_model('prestashop.sale.order')
         sale_order_id = binder.to_openerp(record['id_order'], unwrap=True)
-        return self.session.read('prestashop.sale.order', sale_order_id)
+        return self.session.read('prestashop.sale.order', sale_order_id, [])
 
     @mapping
     def from_sale_order(self, record):
         sale_order = self._get_order(record)
+        fiscal_position = None
+        if sale_order['fiscal_position']:
+            fiscal_position = sale_order['fiscal_position'][0]
         return {
             'origin': sale_order['name'],
-            'fiscal_position': sale_order['fiscal_position'],
+            'fiscal_position': fiscal_position,
         }
 
     @mapping
