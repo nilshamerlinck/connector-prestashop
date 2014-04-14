@@ -232,6 +232,21 @@ class ProductImageAdapter(PrestaShopCRUDAdapter):
             options=options
         )
 
+@prestashop
+class SupplierImageAdapter(PrestaShopCRUDAdapter):
+    _model_name = 'prestashop.supplier.image'
+    _prestashop_image_model = 'suppliers'
+
+    def read(self, supplier_id, options=None):
+        api = PrestaShopWebServiceImage(self.prestashop.api_url,
+                                        self.prestashop.webservice_key)
+        res = api.get_image(
+            self._prestashop_image_model,
+            supplier_id,
+            options=options
+        )
+        return res['content']
+
 
 @prestashop
 class TaxGroupAdapter(GenericAdapter):
@@ -249,3 +264,15 @@ class OrderPaymentAdapter(GenericAdapter):
 class OrderDiscountAdapter(GenericAdapter):
     _model_name = 'prestashop.sale.order.line.discount'
     _prestashop_model = 'order_discounts'
+
+
+@prestashop
+class SupplierAdapter(GenericAdapter):
+    _model_name = 'prestashop.supplier'
+    _prestashop_model = 'suppliers'
+
+
+@prestashop
+class SupplierInfoAdapter(GenericAdapter):
+    _model_name = 'prestashop.product.supplierinfo'
+    _prestashop_model = 'product_suppliers'

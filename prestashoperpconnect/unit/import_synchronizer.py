@@ -270,6 +270,8 @@ class DelayedBatchImport(BatchImportSynchronizer):
         'prestashop.product.product',
         'prestashop.sale.order',
         'prestashop.refund',
+        'prestashop.supplier',
+        'prestashop.product.supplierinfo',
     ]
 
     def _import_record(self, record, **kwargs):
@@ -371,6 +373,41 @@ class SimpleRecordImport(PrestashopImportSynchronizer):
         'prestashop.account.tax.group',
     ]
 
+
+@prestashop
+class SupplierRecordImport(PrestashopImportSynchronizer):
+    """ Import one simple record """
+    _model_name = 'prestashop.supplier'
+
+    def _after_import(self, erp_id):
+        binder = self.get_binder_for_model(self._model_name)
+        ps_id = binder.to_backend(erp_id)
+        import_batch(
+            self.session,
+            'prestashop.product.supplierinfo',
+            self.backend_record.id,
+            filters={'filter[id_supplier]': '%d' % ps_id},
+            priority=10,
+        )
+
+
+@prestashop
+class SupplierInfoImport(PrestashopImportSynchronizer):
+    _model_name = 'prestashop.product.supplierinfo'
+
+    def _import_dependencies(self):
+        record = self.prestashop_record
+        self._check_dependency(record['id_supplier'], 'prestashop.supplier')
+        if record['id_product']:
+            self._check_dependency(
+                record['id_product'], 'prestashop.product.product'
+            )
+
+        if record['id_product_attribute']:
+            self._check_dependency(
+                record['id_product_attribute'],
+                'prestashop.product.combination'
+            )
 
 @prestashop
 class SaleImportRule(ConnectorUnit):
@@ -750,6 +787,7 @@ class ProductRecordImport(TranslatableRecordImport):
             'model_id': product_model_id,
             'name': 'Combinations options',
             'sequence': 0,
+            'attribute_ids': [],
         }
         attribute_set = {
             'model_id': product_model_id,
@@ -955,6 +993,23 @@ def import_refunds(session, backend_id, since_date):
         session.uid,
         backend_id,
         {'import_refunds_since': now_fmt},
+        context=session.context
+    )
+
+
+@job
+def import_suppliers(session, backend_id, since_date):
+    filters = None
+    if since_date:
+        date_str = since_date.strftime('%Y-%m-%d %H:%M:%S')
+        filters = {'date': '1', 'filter[date_upd]': '>[%s]' % (date_str)}
+    now_fmt = datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)
+    import_batch(session, 'prestashop.supplier', backend_id, filters)
+    session.pool.get('prestashop.backend').write(
+        session.cr,
+        session.uid,
+        backend_id,
+        {'import_suppliers_since': now_fmt},
         context=session.context
     )
 

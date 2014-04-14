@@ -33,8 +33,10 @@ from openerp.addons.connector.unit.mapper import (
 from ..backend import prestashop
 from ..connector import add_checkpoint
 from backend_adapter import GenericAdapter
+from backend_adapter import PrestaShopCRUDAdapter
 from openerp.addons.connector_ecommerce.unit.sale_order_onchange import (
     SaleOrderOnChange)
+from openerp.addons.connector.connector import Binder
 
 
 class PrestashopImportMapper(ImportMapper):
@@ -211,6 +213,40 @@ class PartnerImportMapper(PrestashopImportMapper):
     @mapping
     def company_id(self, record):
         return {'company_id': self.backend_record.company_id.id}
+
+
+@prestashop
+class SupplierMapper(PrestashopImportMapper):
+    _model_name = 'prestashop.supplier'
+
+    direct = [
+        ('name', 'name'),
+        ('id', 'prestashop_id'),
+        ('active', 'active'),
+    ]
+
+    @mapping
+    def company_id(self, record):
+        return {'company_id': self.backend_record.company_id.id}
+
+    @mapping
+    def backend_id(self, record):
+        return {'backend_id': self.backend_record.id}
+
+    @mapping
+    def supplier(self, record):
+        return {
+            'supplier': True,
+            'is_company': True,
+            'customer': False,
+        }
+
+    @mapping
+    def image(self, record):
+        supplier_image_adapter = self.get_connector_unit_for_model(
+            PrestaShopCRUDAdapter, 'prestashop.supplier.image'
+        )
+        return {'image': supplier_image_adapter.read(record['id'])}
 
 
 @prestashop
@@ -635,6 +671,40 @@ class TaxGroupMapper(PrestashopImportMapper):
     def company_id(self, record):
         return {'company_id': self.backend_record.company_id.id}
 
+
+@prestashop
+class SupplierInfoMapper(PrestashopImportMapper):
+    _model_name = 'prestashop.product.supplierinfo'
+
+    direct = [
+        ('product_supplier_reference', 'product_code'),
+    ]
+
+    @mapping
+    def company_id(self, record):
+        return {'company_id': self.backend_record.company_id.id}
+
+    @mapping
+    def backend_id(self, record):
+        return {'backend_id': self.backend_record.id}
+
+    @mapping
+    def name(self, record):
+        binder = self.get_connector_unit_for_model(Binder, 'prestashop.supplier')
+        partner_id = binder.to_openerp(record['id_supplier'], unwrap=True)
+        return {'name': partner_id}
+
+    @mapping
+    def product_id(self, record):
+        if record['id_product_attribute'] != '0':
+            binder = self.get_connector_unit_for_model(Binder, 'prestashop.product.combination')
+            return {'product_id': binder.to_openerp(record['id_product_attribute'], unwrap=True)}
+        binder = self.get_connector_unit_for_model(Binder, 'prestashop.product.product')
+        return {'product_id': binder.to_openerp(record['id_product'], unwrap=True)}
+
+    @mapping
+    def required(self, record):
+        return {'min_qty': 0.0, 'delay': 1}
 
 class PrestashopExportMapper(ExportMapper):
 
