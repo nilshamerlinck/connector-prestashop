@@ -270,6 +270,10 @@ class ProductMapper(PrestashopImportMapper):
         return {'sale_ok': sale_ok}
 
     @mapping
+    def purchase_ok(self, record):
+        return {'purchase_ok': not self.has_combinations(record)}
+
+    @mapping
     def categ_id(self, record):
         if not int(record['id_category_default']):
             return
@@ -380,6 +384,14 @@ class product_product(orm.Model):
         default['prestashop_bind_ids'] = []
         return super(product_product, self).copy(cr, uid, id, default=default,
                                                  context=context)
+
+    def _update_prestashop_quantities(self, cr, uid, ids, context=None):
+        for product in self.browse(cr, uid, ids, context=context):
+            for prestashop_product in product.prestashop_bind_ids:
+                prestashop_product.recompute_prestashop_qty()
+            prestashop_combinations = product.prestashop_combinations_bind_ids
+            for prestashop_combination in prestashop_combinations:
+                prestashop_combination.recompute_prestashop_qty()
 
 
 class prestashop_product_product(orm.Model):
@@ -612,11 +624,13 @@ class ProductInventoryAdapter(GenericAdapter):
 
 # fields which should not trigger an export of the products
 # but an export of their inventory
-INVENTORY_FIELDS = ('quantity',
-                    )
+INVENTORY_FIELDS = ('quantity',)
 
 
-@on_record_write(model_names='prestashop.product.product')
+@on_record_write(model_names=[
+    'prestashop.product.product',
+    'prestashop.product.combination'
+])
 def prestashop_product_stock_updated(session, model_name, record_id,
                                      fields=None):
     if session.context.get('connector_no_export'):
