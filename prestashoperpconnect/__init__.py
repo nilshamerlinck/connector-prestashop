@@ -24,12 +24,9 @@
 
 import backend
 import connector
-import prestashop_model
-import partner
 import product
 import product_combination
 import sale
-import setting
 import delivery
 import consumer
 import account
