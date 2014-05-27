@@ -131,11 +131,17 @@ class ProductMapper(PrestashopImportMapper):
         ('description_short', 'description_short_html'),
         ('weight', 'weight'),
         ('wholesale_price', 'standard_price'),
-        ('price', 'list_price'),
+        ('price', 'list_price_tax_inc'),
         ('id_shop_default', 'default_shop_id'),
         ('link_rewrite', 'link_rewrite'),
         ('reference', 'reference'),
     ]
+
+    @mapping
+    def price(self, record):
+        if self.backend_record.taxes_included:
+            return {'list_price_tax_inc': record['price']}
+        return {'list_price': record['price']}
 
     @mapping
     def name(self, record):

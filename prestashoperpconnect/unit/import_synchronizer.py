@@ -309,6 +309,8 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
         self.create_account(self.prestashop_record['id'], name)
 
     def create_account(self, prestashop_id, name):
+        if self.backend_record.company_id.id in [7, 8]:
+            return
         account = self.session.search('account.account', [
             ('company_id', '=', self.backend_record.company_id.id),
             ('code', '=', '411%05d' % int(prestashop_id))
@@ -345,13 +347,14 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
         )
 
     def _after_import(self, erp_id):
-        self.session.pool['prestashop.res.partner'].write(
-            self.session.cr,
-            self.session.uid,
-            erp_id,
-            {'property_account_receivable': self.account_id},
-            context={'company_id': self.backend_record.company_id.id}
-        )
+        if hasattr(self, 'account_id'):
+            self.session.pool['prestashop.res.partner'].write(
+                self.session.cr,
+                self.session.uid,
+                erp_id,
+                {'property_account_receivable': self.account_id},
+                context={'company_id': self.backend_record.company_id.id}
+            )
 
         binder = self.get_binder_for_model(self._model_name)
         ps_id = binder.to_backend(erp_id)
@@ -1143,7 +1146,7 @@ def import_suppliers(session, backend_id, since_date):
         filters = {'date': '1', 'filter[date_upd]': '>[%s]' % (date_str)}
     now_fmt = datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)
     import_batch(session, 'prestashop.supplier', backend_id, filters)
-    import_batch(session, 'prestashop.product.supplierinfo', backend_id)
+    #import_batch(session, 'prestashop.product.supplierinfo', backend_id)
     session.pool.get('prestashop.backend').write(
         session.cr,
         session.uid,
