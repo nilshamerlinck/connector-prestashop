@@ -44,6 +44,13 @@ from .connector import get_environment
 from .unit.mapper import PrestashopImportMapper
 from backend import prestashop
 
+from prestapyt import PrestaShopWebServiceDict
+
+try:
+    from xml.etree import cElementTree as ElementTree
+except ImportError, e:
+    from xml.etree import ElementTree
+
 
 ##########  product category ##########
 @prestashop
@@ -321,12 +328,6 @@ class ProductAdapter(GenericAdapter):
     _prestashop_model = 'products'
     _export_node_name = 'product'
 
-    def update_inventory(self, id, attributes):
-        api = self.connect()
-        if attributes is None:
-            attributes = {}
-        return api.edit('stock_availables', attributes)
-
 
 @prestashop
 class ProductInventoryExport(ExportSynchronizer):
@@ -347,12 +348,7 @@ class ProductInventoryExport(ExportSynchronizer):
             GenericAdapter, '_import_stock_available'
         )
         filter = self.get_filter(product)
-        response = adapter.search(filter)
-        #assert len(response) == 1, 'Found %d stocks' % len(response)
-        for stock_id in response:
-            stock = adapter.read(stock_id)
-            stock['quantity'] = int(product.quantity)
-            adapter.write(stock_id, stock)
+        adapter.export_quantity(filter, int(product.quantity))
 
 
 @prestashop
@@ -445,6 +441,41 @@ class ProductInventoryAdapter(GenericAdapter):
         api = self.connect()
         return api.get(self._prestashop_model, options=options)
 
+    def export_quantity(self, filters, quantity):
+        self.export_quantity_url(
+            self.backend_record.location,
+            self.backend_record.webservice_key,
+            filters,
+            quantity
+        )
+
+        shop_ids = self.session.search('prestashop.shop', [
+            ('backend_id', '=', self.backend_record.id),
+            ('default_url', '!=', False),
+        ])
+        shops = self.session.browse('prestashop.shop', shop_ids)
+        for shop in shops:
+            self.export_quantity_url(
+                '%s/api' % shop.default_url,
+                self.backend_record.webservice_key,
+                filters,
+                quantity
+            )
+
+    def export_quantity_url(self, url, key, filters, quantity):
+        api = PrestaShopWebServiceDict(url, key)
+        response = api.search(self._prestashop_model, filters)
+        for stock_id in response:
+            res = api.get(self._prestashop_model, stock_id)
+            first_key = res.keys()[0]
+            stock = res[first_key]
+            stock['quantity'] = int(quantity)
+            try:
+                api.edit(self._prestashop_model, {
+                    self._export_node_name: stock
+                })
+            except ElementTree.ParseError:
+                pass
 
 
 # fields which should not trigger an export of the products
