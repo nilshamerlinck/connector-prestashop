@@ -6,7 +6,8 @@ A module that permits OpenERP to connect to Prestashop.
 Requirements
 ------------
 
-You should install prestapyt (akretion branch) and python-requests :
+You should install python librairies and other OCA repositories.
+Please refer to the travis.yml file.
 
 .. code-block:: shell
 
@@ -19,7 +20,6 @@ This module is based on modules in other repositories :
  - https://github.com/OCA/e-commerce.git
  - https://github.com/OCA/sale-workflow.git
  
-
 Getting started
 ---------------
 
