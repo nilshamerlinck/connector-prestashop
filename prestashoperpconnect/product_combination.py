@@ -9,7 +9,7 @@ combinations with different colors and different storage size.
 We map that in OpenERP to a product.product with an attribute.set defined for
 the main product.
 '''
-
+import logging
 from unidecode import unidecode
 import json
 
@@ -31,6 +31,8 @@ from openerp.addons.product.product import check_ean
 from .product import ProductInventoryExport
 
 from prestapyt import PrestaShopWebServiceError
+
+_logger = logging.getLogger(__name__)
 
 try:
     from xml.etree import cElementTree as ElementTree
@@ -144,13 +146,41 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
             record['id']
         )
 
+    def _create(self, data, context=None):
+        """ Create the ERP record """
+        if context is None:
+            context = self._context()
+        context['lang'] = 'fr_FR'
+        erp_id = self.model.create(
+            self.session.cr,
+            self.session.uid,
+            data,
+            context=context
+        )
+        _logger.debug('%s %d created from prestashop %s',
+                      self.model._name, erp_id, self.prestashop_id)
+        return erp_id
+
+    def _update(self, erp_id, data, context=None):
+        """ Update an ERP record """
+        if context is None:
+            context = self._context()
+        context['lang'] = 'fr_FR'
+        self.model.write(self.session.cr,
+                         self.session.uid,
+                         erp_id,
+                         data,
+                         context=context)
+        _logger.debug('%s %d updated from prestashop %s',
+                      self.model._name, erp_id, self.prestashop_id)
+        return
+
 
 @prestashop
 class ProductCombinationMapper(PrestashopImportMapper):
     _model_name = 'prestashop.product.combination'
 
     direct = [
-        ('weight', 'weight'),
         ('reference', 'reference'),
     ]
 
@@ -161,6 +191,17 @@ class ProductCombinationMapper(PrestashopImportMapper):
         'company_id',
         'image_medium',
     ]
+
+    @mapping
+    def weight(self, record):
+        combination_weight = float(record['weight'])
+        main_product = self.main_product(record)
+        main_weight = main_product.weight
+        if combination_weight == 0.0:
+            final_weight = main_weight
+        else:
+            final_weight = main_weight + combination_weight
+        return {'weight': final_weight}
 
     @mapping
     def price(self, record):
@@ -245,6 +286,8 @@ class ProductCombinationMapper(PrestashopImportMapper):
     @mapping
     def name(self, record):
         product = self.main_product(record)
+        #Ugly patch we need to refactor totaly prestashoperpconnect
+        product = product.browse(context={'lang': 'fr_FR'})[0]
         options = []
         for option_value_object in self._get_option_value(record):
             key = option_value_object.attribute_id.field_description
