@@ -314,7 +314,7 @@ class ProductMapper(PrestashopImportMapper):
 
     @mapping
     def procure_method(self, record):
-        if record['type'] == 'pack':
+        if record['type'].get('value', '') == 'pack' or record['type'] == 'pack':
             return {
                 'procure_method': 'make_to_order',
                 'supply_method': 'produce',
