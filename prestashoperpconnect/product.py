@@ -138,7 +138,6 @@ class ProductMapper(PrestashopImportMapper):
         ('description_short', 'description_short_html'),
         ('weight', 'weight'),
         ('wholesale_price', 'standard_price'),
-        ('price', 'list_price_tax_inc'),
         ('id_shop_default', 'default_shop_id'),
         ('link_rewrite', 'link_rewrite'),
         ('reference', 'reference'),
