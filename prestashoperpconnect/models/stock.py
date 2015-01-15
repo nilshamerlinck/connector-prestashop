@@ -36,7 +36,7 @@ class StockMove(Model):
         )
         location_ids = self.get_stock_location_ids(cr, uid, context=context)
         for move in self.browse(cr, uid, ids, context=context):
-            if move.location_id.id in location_ids:
+            if move.location_id.id in location_ids or move.location_dest_id.id in location_ids:
                 self.update_prestashop_quantities(
                     cr, uid, [move.id], context=context
                 )
@@ -46,7 +46,7 @@ class StockMove(Model):
         res = super(StockMove, self).action_done(cr, uid, ids, context=context)
         location_ids = self.get_stock_location_ids(cr, uid, context=context)
         for move in self.browse(cr, uid, ids, context=context):
-            if move.location_dest_id.id in location_ids:
+            if move.location_dest_id.id in location_ids or move.location_id.id in location_ids:
                 self.update_prestashop_quantities(
                     cr, uid, [move.id], context=context
                 )
