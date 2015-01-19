@@ -307,56 +307,8 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
                 self.prestashop_record['firstname'], 
                 self.prestashop_record['lastname']
             )
-        self.create_account(self.prestashop_record['id'], name)
-
-    def create_account(self, prestashop_id, name):
-        if self.backend_record.company_id.id in [7, 8]:
-            return
-        account = self.session.search('account.account', [
-            ('company_id', '=', self.backend_record.company_id.id),
-            ('code', '=', '411%05d' % int(prestashop_id))
-        ])
-        if len(account) == 1:
-            self.account_id = account[0]
-            return
-        
-        parent_ids = self.session.search('account.account', [
-            ('company_id', '=', self.backend_record.company_id.id),
-            ('code', '=', '411')
-        ])
-        assert len(parent_ids) == 1
-        model_data_pool = self.session.pool['ir.model.data']
-        _, account_type_id = model_data_pool.get_object_reference(
-            self.session.cr,
-            self.session.uid,
-            'account',
-            'data_account_type_payable'
-        )
-        data = {
-            'code': '411%05d' % int(prestashop_id),
-            'name': name,
-            'parent_id': parent_ids[0],
-            'type': 'receivable',
-            'user_type': account_type_id,
-            'active': True,
-            'company_id': self.backend_record.company_id.id,
-            'reconcile': True,
-        }
-        self.account_id = self.session.create(
-            'account.account',
-            data
-        )
 
     def _after_import(self, erp_id):
-        if hasattr(self, 'account_id'):
-            self.session.pool['prestashop.res.partner'].write(
-                self.session.cr,
-                self.session.uid,
-                erp_id,
-                {'property_account_receivable': self.account_id},
-                context={'company_id': self.backend_record.company_id.id}
-            )
-
         binder = self.get_binder_for_model(self._model_name)
         ps_id = binder.to_backend(erp_id)
         import_batch.delay(
