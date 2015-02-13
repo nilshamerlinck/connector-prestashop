@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data noupdate="0">
+
+        <record id="view_prestashop_backend_price_list_form" model="ir.ui.view">
+            <field name="name">prestashop.backend.pricelist.form</field>
+            <field name="model">prestashop.backend</field>
+            <field name="inherit_id" ref="prestashoperpconnect.view_prestashop_backend_form"/>
+            <field name="arch" type="xml">
+                <field name="shipping_product_id" position="after">
+                    <field name="pricelist_id" on_change="onchange_pricelist_id(pricelist_id)"/>
+                </field>
+            </field>
+        </record>
+
+    </data>
+</openerp>
