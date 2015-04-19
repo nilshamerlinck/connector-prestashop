@@ -129,7 +129,6 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         skip = self._has_to_skip()
         if skip:
             return skip
-
         # import the missing linked resources
         self._import_dependencies()
 
@@ -168,7 +167,7 @@ class BatchImportSynchronizer(ImportSynchronizer):
     items to import, then it can either import them directly or delay
     the import of each item separately.
     """
-    page_size = 1000
+    page_size = 25000
 
     def run(self, filters=None, **kwargs):
         """ Run the synchronization """
@@ -558,6 +557,12 @@ class SaleOrderImport(PrestashopImportSynchronizer):
                                        'prestashop.product.product')
             except PrestaShopWebServiceError:
                 pass
+            if order.get('product_attribute_id', '0') != '0':
+                try:
+                    self._check_dependency(order['product_attribute_id'],
+                                           'prestashop.product.combination')
+                except PrestaShopWebServiceError:
+                    pass
 
     def _check_refunds(self, id_customer, id_order):
         backend_adapter = self.get_connector_unit_for_model(
