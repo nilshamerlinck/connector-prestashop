@@ -29,7 +29,7 @@ import logging
 from prestapyt import PrestaShopWebServiceDict
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
 from ..backend import prestashop
-from openerp.addons.connector.exception import NetworkRetryableError
+from openerp.addons.connector.exception import NetworkRetryableError, RetryableJobError
 from requests.exceptions import (ConnectionError,
     Timeout,
     HTTPError,
@@ -48,6 +48,9 @@ def retryable_error(func):
                 '%s' % err)
         except Exception as e:
             raise e
+            raise RetryableJobError(
+                'An error caused the failure of the job: '
+                '%s' % e)
     return wrapper
 
 
@@ -134,6 +137,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
         return PrestaShopWebServiceDict(self.prestashop.api_url,
                                         self.prestashop.webservice_key)
 
+    @retryable_error
     def search(self, filters=None):
         """ Search records according to some criterias
         and returns a list of ids

@@ -277,6 +277,8 @@ class AddressImportMapper(PrestashopImportMapper):
         ('date_add', 'date_add'),
         ('date_upd', 'date_upd'),
         ('id_customer', 'prestashop_partner_id'),
+        ('company', 'company'),
+        ('alias', 'alias'),
     ]
 
     @mapping
@@ -321,10 +323,6 @@ class AddressImportMapper(PrestashopImportMapper):
             if name:
                 name += " "
             name += record['lastname']
-        if record['alias']:
-            if name:
-                name += " "
-            name += '('+record['alias']+')'
         return {'name': name}
 
     @mapping

@@ -22,6 +22,9 @@
 import openerp.addons.decimal_precision as dp
 
 from openerp.osv import fields, orm
+from openerp.addons.connector.session import ConnectorSession
+from openerp.addons.prestashoperpconnect.connector import get_environment
+from openerp.addons.prestashoperpconnect.unit.backend_adapter import GenericAdapter
 
 
 class sale_order_state(orm.Model):
@@ -142,6 +145,23 @@ class prestashop_sale_order(orm.Model):
             readonly=True
         ),
     }
+
+    # TO DELETE ONE SHOT FIX TRANSACTION ID
+    def fix_transaction_id(self, cr, uid, ids, context=None):
+        browse = self.browse(cr, uid, ids[0])
+        session = ConnectorSession(cr, uid, context=context)
+        env = get_environment(session, '__not_exist_prestashop.payment', browse.backend_id.id)
+        payment_adapter = env.get_connector_unit(GenericAdapter)
+        payment_ids = payment_adapter.search({
+            'filter[order_reference]': browse.name
+        })
+        print "***********", payment_ids
+        if payment_ids:
+            payment = payment_adapter.read(payment_ids[0])
+            self.pool['sale.order'].write(cr, uid, [browse.openerp_id.id], {
+                'transaction_id': payment['transaction_id']
+                })
+        return True
 
 
 class sale_order_line(orm.Model):

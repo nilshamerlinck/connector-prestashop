@@ -37,6 +37,7 @@ class res_partner(orm.Model):
             'prestashop.address', 'openerp_id',
             string="PrestaShop Address Bindings"
         ),
+        'company': fields.char('Company'),
     }
 
 
@@ -116,7 +117,6 @@ class prestashop_res_partner(orm.Model):
             "'Default customer group' in PrestaShop."
         ),
         'birthday': fields.date('Birthday'),
-        'company': fields.char('Company'),
         'prestashop_address_bind_ids': fields.one2many(
             'prestashop.address', 'openerp_id',
             string="PrestaShop Address Bindings"
@@ -208,6 +208,7 @@ class prestashop_address(orm.Model):
             readonly=True
         ),
         'vat_number': fields.char('PrestaShop VAT'),
+        'alias': fields.char('Alias'),
     }
 
     _sql_constraints = [

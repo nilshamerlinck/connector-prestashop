@@ -13,6 +13,9 @@
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="connector.view_partner_connector_form" />
             <field name="arch" type="xml">
+                <field name="street" position="before">
+                    <field name="company" placeholder="Company"/>
+                </field>
                 <page name="connector" position="attributes">
                     <attribute name="invisible">0</attribute>
                 </page>
@@ -33,7 +36,6 @@
                         <field name="shop_group_id"/>
                         <field name="backend_id"/>
                         <field name="prestashop_id"/>
-                        <field name="company"/>
                         <field name="date_add"/>
                         <field name="date_upd"/>
                         <field name="group_ids"/>
@@ -50,7 +52,6 @@
                 <tree string="PrestaShop Partner" version="7.0">
                     <field name="backend_id"/>
                     <field name="shop_group_id"/>
-                    <field name="company"/>
                     <button name="resync"
                         type="object"
                         string="Resync" />
