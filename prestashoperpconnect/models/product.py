@@ -68,7 +68,7 @@ class prestashop_product_category(orm.Model):
 
 
 class product_image(orm.Model):
-    _inherit = 'product.images'
+    _inherit = 'product.image'
 
     _columns = {
         'prestashop_bind_ids': fields.one2many(
@@ -82,11 +82,11 @@ class product_image(orm.Model):
 class prestashop_product_image(orm.Model):
     _name = 'prestashop.product.image'
     _inherit = 'prestashop.binding'
-    _inherits = {'product.images': 'openerp_id'}
+    _inherits = {'product.image': 'openerp_id'}
 
     _columns = {
         'openerp_id': fields.many2one(
-            'product.images',
+            'product.image',
             string='Product image',
             required=True,
             ondelete='cascade'
