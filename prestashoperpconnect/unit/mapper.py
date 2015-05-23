@@ -92,8 +92,14 @@ class ShopImportMapper(PrestashopImportMapper):
 
     direct = [
         ('name', 'name'),
-        ('id_shop_group', 'shop_group_id'),
     ]
+
+    @mapping
+    def shop_group_id(self, record):
+        binder = self.binder_for(model='prestashop.shop.group')
+        binding_id = binder.to_openerp(record['id_shop_group'])
+        import pdb; pdb.set_trace()
+        return {'shop_group_id': binding_id}
 
     @mapping
     def backend_id(self, record):
