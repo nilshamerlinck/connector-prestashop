@@ -92,10 +92,7 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         if context is None:
             context = self._context()
         erp_id = self.model.create(
-            self.session.cr,
-            self.session.uid,
             data,
-            context=context
         )
         _logger.debug('%s %d created from prestashop %s',
                       self.model._name, erp_id, self.prestashop_id)
@@ -105,11 +102,9 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         """ Update an ERP record """
         if context is None:
             context = self._context()
-        self.model.write(self.session.cr,
-                         self.session.uid,
-                         erp_id,
+        self.model.write(erp_id,
                          data,
-                         context=context)
+                         )
         _logger.debug('%s %d updated from prestashop %s',
                       self.model._name, erp_id, self.prestashop_id)
         return
