@@ -149,7 +149,7 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
 
     def _check_dependency(self, ext_id, model_name):
         ext_id = int(ext_id)
-        if not self.get_binder_for_model(model_name).to_openerp(ext_id):
+        if not self.binder_for(model_name).to_openerp(ext_id):
             import_record(
                 self.session,
                 model_name,
@@ -302,7 +302,7 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
                                    'prestashop.res.partner.category')
 
     def _after_import(self, erp_id):
-        binder = self.get_binder_for_model(self._model_name)
+        binder = self.binder_for(self._model_name)
         ps_id = binder.to_backend(erp_id)
         import_batch.delay(
             self.session,
@@ -339,7 +339,7 @@ class MailMessageRecordImport(PrestashopImportSynchronizer):
 
     def _has_to_skip(self):
         record = self.prestashop_record
-        binder = self.get_binder_for_model('prestashop.sale.order')
+        binder = self.binder_for('prestashop.sale.order')
         ps_so_id = binder.to_openerp(record['id_order'])
         return record['id_order'] == '0' or not ps_so_id
 
@@ -357,7 +357,7 @@ class SupplierRecordImport(PrestashopImportSynchronizer):
             return super(SupplierRecordImport, self)._create(record)
 
     def _after_import(self, erp_id):
-        binder = self.get_binder_for_model(self._model_name)
+        binder = self.binder_for(self._model_name)
         ps_id = binder.to_backend(erp_id)
         import_batch(
             self.session,
@@ -412,7 +412,7 @@ class SaleImportRule(ConnectorUnit):
                                        'The import will be retried later.')
 
     def _get_paid_amount(self, record):
-        payment_adapter = self.get_connector_unit_for_model(
+        payment_adapter = self.unit_for(
             GenericAdapter,
             '__not_exist_prestashop.payment'
         )
@@ -528,9 +528,7 @@ class SaleOrderImport(PrestashopImportSynchronizer):
         return True
 
     def _check_refunds(self, id_customer, id_order):
-        backend_adapter = self.get_connector_unit_for_model(
-            GenericAdapter, 'prestashop.refund'
-        )
+        backend_adapter = self.unit_for(GenericAdapter, 'prestashop.refund')
         filters = {'filter[id_customer]': id_customer}
         refund_ids = backend_adapter.search(filters=filters)
         for refund_id in refund_ids:
@@ -543,7 +541,7 @@ class SaleOrderImport(PrestashopImportSynchronizer):
         """ Return True if the import can be skipped """
         if self._get_openerp_id():
             return True
-        rules = self.get_connector_unit_for_model(SaleImportRule)
+        rules = self.unit_for(SaleImportRule)
         return rules.check(self.prestashop_record)
 
 
@@ -557,7 +555,7 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
     _default_language = 'en_US'
 
     def _get_oerp_language(self, prestashop_id):
-        language_binder = self.get_binder_for_model('prestashop.res.lang')
+        language_binder = self.binder_for('prestashop.res.lang')
         erp_language_id = language_binder.to_openerp(prestashop_id)
         if erp_language_id is None:
             return None
@@ -833,11 +831,10 @@ class TemplateRecordImport(TranslatableRecordImport):
         record = self._get_prestashop_data()
         if record['id_default_image']['value'] == '':
             return
-        adapter = self.get_connector_unit_for_model(
-            PrestaShopCRUDAdapter,
-            'prestashop.product.image'
+        adapter = self.unit_for(
+            PrestaShopCRUDAdapter, 'prestashop.product.image'
         )
-        binder = self.get_binder_for_model()
+        binder = self.binder_for()
         template_id = binder.to_openerp(record['id'])
         try:
             image = adapter.read(record['id'],

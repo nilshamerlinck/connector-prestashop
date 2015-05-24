@@ -336,7 +336,7 @@ class ProductInventoryExport(ExportSynchronizer):
     _model_name = ['prestashop.product.template']
 
     def get_filter(self, template):
-        binder = self.get_binder_for_model()
+        binder = self.binder_for()
         prestashop_id = binder.to_backend(template.id)
         return {
             'filter[id_product]': prestashop_id,
@@ -345,10 +345,8 @@ class ProductInventoryExport(ExportSynchronizer):
 
     def run(self, binding_id, fields):
         """ Export the product inventory to Prestashop """
-        template = self.session.browse(self.model._name, binding_id)
-        adapter = self.get_connector_unit_for_model(
-            GenericAdapter, '_import_stock_available'
-        )
+        template = self.session.env[self.model._name].browse(binding_id)
+        adapter = self.unit_for(GenericAdapter, '_import_stock_available')
         filter = self.get_filter(template)
         adapter.export_quantity(filter, int(template.quantity))
 
@@ -401,9 +399,9 @@ class ProductInventoryImport(PrestashopImportSynchronizer):
 
     def _get_template(self, record):
         if record['id_product_attribute'] == '0':
-            binder = self.get_binder_for_model('prestashop.product.template')
+            binder = self.binder_for('prestashop.product.template')
             return binder.to_openerp(record['id_product'], unwrap=True)
-        binder = self.get_binder_for_model('prestashop.product.combination')
+        binder = self.binder_for('prestashop.product.combination')
         return binder.to_openerp(record['id_product_attribute'], unwrap=True)
 
     def run(self, record):
@@ -422,7 +420,7 @@ class ProductInventoryImport(PrestashopImportSynchronizer):
             'product_id': template_id,
             'new_quantity': qty,
         }
-        
+ 
         template_qty_id = self.session.create("stock.change.product.qty",
                                               vals)
         context = {'active_id': template_id}
@@ -452,11 +450,11 @@ class ProductInventoryAdapter(GenericAdapter):
             quantity
         )
 
-        shop_ids = self.session.search('prestashop.shop', [
+        shop_ids = self.session.env['prestashop.shop'].search([
             ('backend_id', '=', self.backend_record.id),
             ('default_url', '!=', False),
         ])
-        shops = self.session.browse('prestashop.shop', shop_ids)
+        shops = self.session.env['prestashop.shop'].browse(shop_ids)
         for shop in shops:
             self.export_quantity_url(
                 '%s/api' % shop.default_url,
