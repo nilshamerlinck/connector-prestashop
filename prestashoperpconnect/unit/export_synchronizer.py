@@ -31,6 +31,7 @@ from openerp.addons.prestashoperpconnect.unit.mapper import TranslationPrestasho
 from openerp.addons.connector.exception import IDMissingInBackend
 from .import_synchronizer import import_record
 from ..connector import get_environment
+from openerp.addons.connector.unit.mapper import ExportMapper
 
 from openerp.addons.prestashoperpconnect.backend import prestashop
 
@@ -209,11 +210,21 @@ class TranslationPrestashopExporter(PrestashopExporter):
 @job
 def export_record(session, model_name, binding_id, fields=None):
     """ Export a record on Prestashop """
+    record = session.browse(model_name, binding_id)
+    env = get_environment(session, model_name, record.backend_id.id)
+    exporter = env.get_connector_unit(PrestashopExporter)
+    mapper = env.get_connector_unit(ExportMapper)
+
+    import pdb; pdb.set_trace()
+    if fields:
+        exported_fields = set(mapper.exported_fields)
+        fields_to_export = set(fields)
+        if not exported_fields & fields_to_export:
+#TODO log ?
+            print 'lla'
+            return True
     #TODO FIX PRESTASHOP
     #prestashop do not support partial edit
     fields = None
 
-    record = session.browse(model_name, binding_id)
-    env = get_environment(session, model_name, record.backend_id.id)
-    exporter = env.get_connector_unit(PrestashopExporter)
     return exporter.run(binding_id, fields=fields)

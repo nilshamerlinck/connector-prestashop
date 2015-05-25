@@ -80,36 +80,29 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         """
         return
 
-    def _get_openerp_id(self):
-        """Return the openerp id from the prestashop id"""
-        return self.binder.to_openerp(self.prestashop_id)
+    def _get_binding(self):
+        """Return the openerp object from the prestashop id"""
+        return self.binder.to_openerp(self.prestashop_id, browse=True)
 
     def _context(self, **kwargs):
         return dict(self.session.context, connector_no_export=True, **kwargs)
 
-    def _create(self, data, context=None):
+    def _create(self, data):
         """ Create the ERP record """
-        if context is None:
-            context = self._context()
-        erp_id = self.model.create(
-            data,
-        )
+        model = self.model.with_context(connector_no_export=True)
+        binding = model.create(data)
         _logger.debug('%s %d created from prestashop %s',
-                      self.model._name, erp_id, self.prestashop_id)
+                      self.model._name, binding, self.prestashop_id)
         return erp_id
 
-    def _update(self, erp_id, data, context=None):
+    def _update(self, binding, data):
         """ Update an ERP record """
-        if context is None:
-            context = self._context()
-        self.model.write(erp_id,
-                         data,
-                         )
+        binding.with_context(connector_no_export=True).write(data)
         _logger.debug('%s %d updated from prestashop %s',
-                      self.model._name, erp_id, self.prestashop_id)
+                      self.model._name, binding, self.prestashop_id)
         return
 
-    def _after_import(self, erp_id):
+    def _after_import(self, binding):
         """ Hook called at the end of the import """
         return
 
@@ -129,8 +122,8 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         self._import_dependencies()
 
         map_record = self.mapper.map_record(self.prestashop_record)
-        erp_id = self._get_openerp_id()
-        if erp_id:
+        binding = self._get_binding()
+        if binding:
             record = map_record.values()
         else:
             record = map_record.values(for_create=True)
@@ -138,14 +131,14 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         # special check on data before import
         self._validate_data(record)
 
-        if erp_id:
-            self._update(erp_id, record)
+        if binding:
+            self._update(binding, record)
         else:
-            erp_id = self._create(record)
+            binding = self._create(record)
 
-        self.binder.bind(self.prestashop_id, erp_id)
+        self.binder.bind(self.prestashop_id, binding)
 
-        self._after_import(erp_id)
+        self._after_import(binding)
 
     def _check_dependency(self, ext_id, model_name):
         ext_id = int(ext_id)
@@ -613,48 +606,46 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
         # split prestashop data for every lang
         splitted_record = self._split_per_language(self.prestashop_record)
 
-        erp_id = None
+        binding = None
 
         if self._default_language in splitted_record:
-            erp_id = self._run_record(
+            binding = self._run_record(
                 splitted_record[self._default_language],
                 self._default_language
             )
             del splitted_record[self._default_language]
 
         for lang_code, prestashop_record in splitted_record.items():
-            erp_id = self._run_record(
+            binding = self._run_record(
                 prestashop_record,
                 lang_code,
-                erp_id
+                binding
             )
 
-        self.binder.bind(self.prestashop_id, erp_id)
+        self.binder.bind(self.prestashop_id, binding)
 
-        self._after_import(erp_id)
+        self._after_import(binding)
 
-    def _run_record(self, prestashop_record, lang_code, erp_id=None):
+    def _run_record(self, prestashop_record, lang_code, binding=None):
         mapped = self.mapper.map_record(prestashop_record)
 
-        if erp_id is None:
-            erp_id = self._get_openerp_id()
+        if binding is None:
+            binding = self._get_binding()
 
-        if erp_id:
+        if binding:
             record = mapped.values()
         else:
             record = mapped.values(for_create=True)
 
         # special check on data before import
         self._validate_data(record)
-
-        context = self._context()
-        context['lang'] = lang_code
-        if erp_id:
-            self._update(erp_id, record, context)
+        self.session.change_context({'lang': lang_code})
+        if binding:
+            self._update(binding, record)
         else:
-            erp_id = self._create(record, context)
+            binding = self._create(record)
 
-        return erp_id
+        return binding
 
 
 @prestashop
