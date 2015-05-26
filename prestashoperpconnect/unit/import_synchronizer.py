@@ -497,13 +497,7 @@ class SaleOrderImport(PrestashopImportSynchronizer):
             except PrestaShopWebServiceError:
                 pass
 
-    def _after_import(self, erp_id):
-        model = self.environment.session.pool.get('prestashop.sale.order')
-        erp_order = model.browse(
-            self.session.cr,
-            self.session.uid,
-            erp_id,
-        )
+    def _after_import(self, erp_order):
         shipping_total = erp_order.total_shipping_tax_included \
             if self.backend_record.taxes_included \
             else erp_order.total_shipping_tax_excluded
@@ -532,7 +526,7 @@ class SaleOrderImport(PrestashopImportSynchronizer):
 
     def _has_to_skip(self):
         """ Return True if the import can be skipped """
-        if self._get_openerp_id():
+        if self._get_binding():
             return True
         rules = self.unit_for(SaleImportRule)
         return rules.check(self.prestashop_record)
@@ -731,12 +725,10 @@ class TemplateRecordImport(TranslatableRecordImport):
     def attribute_line(self, template):
 
         template_id = template.openerp_id.id
-        product_ids = self.session.search('product.product', [
+        products = self.session.env['product.product'].search([
             ('product_tmpl_id', '=', template_id)]
         )
-        if product_ids:
-            products = self.session.browse('product.product',
-                                       product_ids)
+        if products:
             attribute_ids = []
             for product in products:
                 for attribute_value in product.attribute_value_ids:
@@ -749,7 +741,7 @@ class TemplateRecordImport(TranslatableRecordImport):
                         for attribute_value in product.attribute_value_ids:
                             if attribute_value.attribute_id.id == attribute_id:
                                 value_ids.append(attribute_value.id)
-                self.session.create('product.attribute.line', {
+                self.session.env['product.attribute.line'].create({
                     'attribute_id': attribute_id,
                     'product_tmpl_id': template_id,
                     'value_ids': [(6, 0, set(value_ids))]}
@@ -790,6 +782,7 @@ class TemplateRecordImport(TranslatableRecordImport):
                 )
 
     def import_supplierinfo(self, template):
+        supplierinfo_model = 'prestashop.product.supplierinfo'
         ps_id = self._get_prestashop_data()['id']
         filters = {
             'filter[id_product]': ps_id,
@@ -797,17 +790,13 @@ class TemplateRecordImport(TranslatableRecordImport):
         }
         import_batch(
             self.session,
-            'prestashop.product.supplierinfo',
+            supplierinfo_model,
             self.backend_record.id,
             filters=filters
         )
         template_id = template.openerp_id.id
-        ps_supplierinfo_ids = self.session.search(
-            'prestashop.product.supplierinfo',
+        ps_supplierinfos = self.session.env[supplierinfo_model].search(
             [('product_tmpl_id', '=', template_id)]
-        )
-        ps_supplierinfos = self.session.browse(
-            'prestashop.product.supplierinfo', ps_supplierinfo_ids
         )
         for ps_supplierinfo in ps_supplierinfos:
             try:
@@ -822,14 +811,10 @@ class TemplateRecordImport(TranslatableRecordImport):
         adapter = self.unit_for(
             PrestaShopCRUDAdapter, 'prestashop.product.image'
         )
-        binder = self.binder_for()
-        template_id = binder.to_openerp(record['id'])
         try:
-            image = adapter.read(record['id'],
+            image = adapter.read(template.id,
                                  record['id_default_image']['value'])
-            self.session.write(
-                'prestashop.product.template',
-                [template_id],
+            template.write(
                 {"image": image['content']}
             )
         except PrestaShopWebServiceError:
