@@ -35,7 +35,7 @@ class DirectBinder(ConnectorUnit):
     _ps_field = None
     _copy_fields = []
 
-    def _compare_function(ps_val, erp_val, ps_dict, erp_dict):
+    def _compare_function(ps_val, erp_val, ps_dict, record):
         raise NotImplementedError
 
     def run(self):
@@ -50,8 +50,7 @@ class DirectBinder(ConnectorUnit):
         sess = self.session
         erp_model_name = self.model._inherits.iterkeys().next()
         erp_rec_name = sess.pool[erp_model_name]._rec_name
-        erp_ids = sess.env[erp_model_name].search([])
-        erp_list_dict = sess.env[erp_model_name].read(erp_ids, [])
+        erp_records = sess.env[erp_model_name].search([])
         adapter = self.unit_for(BackendAdapter)
         # Get the IDS from PS
         ps_ids = adapter.search()
@@ -61,7 +60,6 @@ class DirectBinder(ConnectorUnit):
                 _('Failed to query %s via PS webservice')
                 % adapter.prestashop_model
             )
-
         binder = self.binder_for()
         # Loop on all PS IDs
         for ps_id in ps_ids:
@@ -80,31 +78,31 @@ class DirectBinder(ConnectorUnit):
                 ps_dict = adapter.read(ps_id)
                 mapping_found = False
                 # Loop on OE IDs
-                for erp_dict in erp_list_dict:
+                for record in erp_records:
                     # Search for a match
-                    erp_val = erp_dict[self._erp_field]
+                    erp_val = record[self._erp_field]
                     ps_val = ps_dict[self._ps_field]
                     if self._compare_function(
                             ps_val,
                             erp_val,
                             ps_dict,
-                            erp_dict):
+                            record):
                         # it matches, so I write the external ID
                         data = {
-                            'openerp_id': erp_dict['id'],
+                            'openerp_id': record['id'],
                             'backend_id': self.backend_record.id,
                         }
                         for oe_field, ps_field in self._copy_fields:
-                            data[oe_field] = erp_dict[ps_field]
-                        ps_erp_id = sess.create(self._model_name, data)
+                            data[oe_field] = record[ps_field]
+                        ps_erp_id = sess.env[self._model_name].create(data)
                         binder.bind(ps_id, ps_erp_id)
                         _logger.debug(
                             "[%s] Mapping PS '%s' (%s) to OERP '%s' (%s)"
                             % (self.model._description,
                                ps_dict['name'],  # not hardcode if needed
                                ps_dict[self._ps_field],
-                               erp_dict[erp_rec_name],
-                               erp_dict[self._erp_field]))
+                               record[erp_rec_name],
+                               record[self._erp_field]))
                         nr_ps_mapped += 1
                         mapping_found = True
                         break
@@ -144,7 +142,7 @@ class CarrierDirectBinder(DirectBinder):
     _erp_field = 'name'
     _ps_field = 'name_ext'
 
-    #def _compare_function(self, ps_val, erp_val, ps_dict, erp_dict):
+    #def _compare_function(self, ps_val, erp_val, ps_dict, record):
     #    if len(erp_val) >= 2 and len(ps_val) >= 2 and \
     #            erp_val[0:2].lower() == ps_val[0:2].lower():
     #        return True
@@ -160,7 +158,7 @@ class LangDirectBinder(DirectBinder):
         ('active', 'active'),
     ]
 
-    def _compare_function(self, ps_val, erp_val, ps_dict, erp_dict):
+    def _compare_function(self, ps_val, erp_val, ps_dict, record):
         if len(erp_val) >= 2 and len(ps_val) >= 2 and \
                 erp_val[0:2].lower() == ps_val[0:2].lower():
             return True
@@ -173,7 +171,7 @@ class CountryDirectBinder(DirectBinder):
     _erp_field = 'code'
     _ps_field = 'iso_code'
 
-    def _compare_function(self, ps_val, erp_val, ps_dict, erp_dict):
+    def _compare_function(self, ps_val, erp_val, ps_dict, record):
         if len(erp_val) >= 2 and len(ps_val) >= 2 and \
                 erp_val[0:2].lower() == ps_val[0:2].lower():
             return True
@@ -186,7 +184,7 @@ class ResCurrencyDirectBinder(DirectBinder):
     _erp_field = 'name'
     _ps_field = 'iso_code'
 
-    def _compare_function(self, ps_val, erp_val, ps_dict, erp_dict):
+    def _compare_function(self, ps_val, erp_val, ps_dict, record):
         if len(erp_val) == 3 and len(ps_val) == 3 and \
                 erp_val[0:3].lower() == ps_val[0:3].lower():
             return True
@@ -199,11 +197,11 @@ class AccountTaxDirectBinder(DirectBinder):
     _erp_field = 'amount'
     _ps_field = 'rate'
 
-    def _compare_function(self, ps_val, erp_val, ps_dict, erp_dict):
+    def _compare_function(self, ps_val, erp_val, ps_dict, record):
         taxes_inclusion_test = self.backend_record.taxes_included and \
-            erp_dict['price_include'] or not erp_dict['price_include']
-        if taxes_inclusion_test and erp_dict['type_tax_use'] == 'sale' and \
+            record['price_include'] or not record['price_include']
+        if taxes_inclusion_test and record['type_tax_use'] == 'sale' and \
                 abs(erp_val*100 - float(ps_val)) < 0.01 and \
-                self.backend_record.company_id.id == erp_dict['company_id'][0]:
+                self.backend_record.company_id.id == record['company_id'][0]:
             return True
         return False
