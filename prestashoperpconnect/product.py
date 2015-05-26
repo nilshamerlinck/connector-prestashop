@@ -105,12 +105,12 @@ class ProductImageMapper(PrestashopImportMapper):
     _model_name = 'prestashop.product.image'
 
     direct = [
-        ('content', 'file'),
+        ('content', 'file_db_store'),
     ]
 
     @mapping
-    def template_id(self, record):
-        return {'product_tmpl_id': self.get_openerp_id(
+    def product_id(self, record):
+        return {'product_id': self.get_openerp_id(
             'prestashop.product.template',
             record['id_product']
         )}
