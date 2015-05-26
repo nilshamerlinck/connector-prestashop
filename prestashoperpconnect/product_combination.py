@@ -56,7 +56,7 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
             'product_option_values', {}).get('product_option_value', [])
         if not isinstance(option_values, list):
             option_values = [option_values]
-        backend_adapter = self.get_connector_unit_for_model(
+        backend_adapter = self.unit_for(
             BackendAdapter,
             'prestashop.product.combination.option.value'
         )
@@ -92,7 +92,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
         if not isinstance(images, list):
             images = [images]
         if images[0].get('id'):
-            binder = self.get_binder_for_model('prestashop.product.image')
+            binder = self.binder_for('prestashop.product.image')
             image_id = binder.to_openerp(images[0].get('id'))
             variant_image = self.session.browse('prestashop.product.image',
                                                 image_id)
@@ -100,7 +100,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
                 if not variant_image.link:
                     return {'image_variant': variant_image.file_db_store}
                 else:
-                    adapter = self.get_connector_unit_for_model(
+                    adapter = self.connector_unit_for(
                         PrestaShopCRUDAdapter,
                         'prestashop.product.image')
                     try:
@@ -145,7 +145,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
         return self._main_template
 
     def get_main_template_id(self, record):
-        template_binder = self.get_binder_for_model(
+        template_binder = self.binder_for(
             'prestashop.product.template')
         return template_binder.to_openerp(record['id_product'])
 
@@ -156,7 +156,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
             option_values = [option_values]
 
         for option_value in option_values:
-            option_value_binder = self.get_binder_for_model(
+            option_value_binder = self.binder_for(
                 'prestashop.product.combination.option.value')
             option_value_openerp_id = option_value_binder.to_openerp(
                 option_value['id'])
@@ -217,11 +217,15 @@ class ProductCombinationMapper(PrestashopImportMapper):
 
     @mapping
     def ean13(self, record):
-        if record['ean13'] in ['', '0']:
-            backend_adapter = self.get_connector_unit_for_model(
-            GenericAdapter, 'prestashop.product.template')
+        ean13 = record['ean13']
+        if ean13 in ['', '0']:
+            backend_adapter = self.unit_for(
+                GenericAdapter, 'prestashop.product.template')
             template = backend_adapter.read(record['id_product'])
-            return template['ean13'] and {'ean13': template['ean13']} or {}
+            if template['ean13'] and template['ean13'] not in ['', '0']:
+                ean13 = template['ean13']
+            else:
+                return {}
         if check_ean(record['ean13']):
             return {'ean13': record['ean13']}
         return {}
@@ -288,7 +292,7 @@ class ProductCombinationOptionMapper(PrestashopImportMapper):
     def name(self, record):
         name = None
         if 'language' in record['name']:
-            language_binder = self.get_binder_for_model('prestashop.res.lang')
+            language_binder = self.binder_for('prestashop.res.lang')
             languages = record['name']['language']
             if not isinstance(languages, list):
                 languages = [languages]
@@ -348,8 +352,7 @@ class ProductCombinationOptionValueMapper(PrestashopImportMapper):
 
     @mapping
     def attribute_id(self, record):
-        binder = self.get_binder_for_model(
-            'prestashop.product.combination.option')
+        binder = self.binder_for('prestashop.product.combination.option')
         attribute_id = binder.to_openerp(record['id_attribute_group'],
                                          unwrap=True)
         return {'attribute_id': attribute_id}
