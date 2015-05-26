@@ -89,33 +89,37 @@ class PrestashopModelBinder(PrestashopBinder):
         else:
             return bindings if browse else bindings.id
 
-    def to_backend(self, local_id, unwrap=False, wrap=False):
+    def to_backend(self, record_id, wrap=False):
         """ Give the external ID for an OpenERP ID
 
-        :param local_id: Local ID for which we want the external id
-                         can be an erp_id or a erp_ps_id
-        :param unwrap: if True, the erp_id is the id of native openerp
-                       object and not a prestashop_xxxx. In this case
-                       we have first to found the prestashop_xxx object id
-                       (erp_ps_id) and then the external id for this record
+        :param record_id: OpenERP ID for which we want the external id
+                          or a recordset with one record
+        :param wrap: if False, record_id is the ID of the binding,
+            if True, record_id is the ID of the normal record, the
+            method will search the corresponding binding and returns
+            the backend id of the binding
         :return: backend identifier of the record
         """
-        if unwrap:
-            erp_ps_id = self.session.search(self.model._name, [
-                ['openerp_id', '=', local_id],
-                ['backend_id', '=', self.backend_record.id]
-            ])
-            if erp_ps_id:
-                erp_ps_id = erp_ps_id[0]
+        record = self.model.browse()
+        if isinstance(record_id, openerp.models.BaseModel):
+            record_id.ensure_one()
+            record = record_id
+            record_id = record_id.id
+        if wrap:
+            binding = self.model.with_context(active_test=False).search(
+                [('openerp_id', '=', record_id),
+                 ('backend_id', '=', self.backend_record.id),
+                 ]
+            )
+            if binding:
+                binding.ensure_one()
+                return binding.prestashop_id
             else:
                 return None
-        else:
-            erp_ps_id = local_id
-
-        prestashop_id = self.session.read(
-            self.model._name,
-            erp_ps_id, ['prestashop_id'])['prestashop_id']
-        return prestashop_id
+        if not record:
+            record = self.model.browse(record_id)
+        assert record
+        return record.prestashop_id
 
     def bind(self, external_id, openerp_id):
         """ Create the link between an external ID and an OpenERP ID
@@ -131,3 +135,38 @@ class PrestashopModelBinder(PrestashopBinder):
         openerp_id.with_context(connector_no_export=True).write(
             {'prestashop_id': str(external_id),
              'sync_date': now_fmt})
+
+    def unwrap_binding(self, binding_id, browse=False):
+        """ For a binding record, gives the normal record.
+
+        Example: when called with a ``prestashop.product.product`` id,
+        it will return the corresponding ``product.product`` id.
+
+        :param browse: when True, returns a browse_record instance
+                       rather than an ID
+        """
+        if isinstance(binding_id, openerp.models.BaseModel):
+            binding = binding_id
+        else:
+            binding = self.model.browse(binding_id)
+
+        openerp_record = binding.openerp_id
+        if browse:
+            return openerp_record
+        return openerp_record.id
+
+    def unwrap_model(self):
+        """ For a binding model, gives the name of the normal model.
+
+        Example: when called on a binder for ``prestashop.product.product``,
+        it will return ``product.product``.
+
+        This binder assumes that the normal model lays in ``openerp_id`` since
+        this is the field we use in the ``_inherits`` bindings.
+        """
+        try:
+            column = self.model._fields['openerp_id']
+        except KeyError:
+            raise ValueError('Cannot unwrap model %s, because it has '
+                             'no openerp_id field' % self.model._name)
+        return column.comodel_name
