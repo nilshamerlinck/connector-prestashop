@@ -93,7 +93,7 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         binding = model.create(data)
         _logger.debug('%s %d created from prestashop %s',
                       self.model._name, binding, self.prestashop_id)
-        return erp_id
+        return binding
 
     def _update(self, binding, data):
         """ Update an ERP record """
@@ -721,17 +721,15 @@ class TemplateRecordImport(TranslatableRecordImport):
         self.attribute_line(erp_id)
         self.deactivate_default_product(erp_id)
 
-    def deactivate_default_product(self, erp_id):
-        template = self.session.browse('prestashop.product.template', erp_id)
+    def deactivate_default_product(self, template):
         if template.product_variant_count != 1:
             for product in template.product_variant_ids:
                 if not product.attribute_value_ids:
                     self.session.write('product.product', [product.id],
                                        {'active': False})
 
-    def attribute_line(self, erp_id):
+    def attribute_line(self, template):
 
-        template = self.session.browse('prestashop.product.template', erp_id)
         template_id = template.openerp_id.id
         product_ids = self.session.search('product.product', [
             ('product_tmpl_id', '=', template_id)]
@@ -773,7 +771,7 @@ class TemplateRecordImport(TranslatableRecordImport):
                 combination['id']
             )
 
-    def import_images(self, erp_id):
+    def import_images(self, template):
         prestashop_record = self._get_prestashop_data()
         associations = prestashop_record.get('associations', {})
         images = associations.get('images', {}).get('image', {})
@@ -791,7 +789,7 @@ class TemplateRecordImport(TranslatableRecordImport):
                     priority=10,
                 )
 
-    def import_supplierinfo(self, erp_id):
+    def import_supplierinfo(self, template):
         ps_id = self._get_prestashop_data()['id']
         filters = {
             'filter[id_product]': ps_id,
@@ -803,7 +801,6 @@ class TemplateRecordImport(TranslatableRecordImport):
             self.backend_record.id,
             filters=filters
         )
-        template = self.session.browse('prestashop.product.template', erp_id)
         template_id = template.openerp_id.id
         ps_supplierinfo_ids = self.session.search(
             'prestashop.product.supplierinfo',
@@ -818,7 +815,7 @@ class TemplateRecordImport(TranslatableRecordImport):
             except PrestaShopWebServiceError:
                 ps_supplierinfo.openerp_id.unlink()
 
-    def import_default_image(self, erp_id):
+    def import_default_image(self, template):
         record = self._get_prestashop_data()
         if record['id_default_image']['value'] == '':
             return
