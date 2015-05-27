@@ -150,9 +150,8 @@ class GenericAdapter(PrestaShopCRUDAdapter):
         """ Update records on the external system """
         api = self.connect()
         attributes['id'] = id
-        return api.edit(self._prestashop_model, {
-            self._export_node_name: attributes
-        })
+        return api.edit(
+            self._prestashop_model, id, {self._export_node_name: attributes})
 
     def delete(self, ids):
         api = self.connect()
