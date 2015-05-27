@@ -231,7 +231,7 @@ class ProductTemplateExport(PrestashopExporter):
 
     def _after_export(self):
         if self.erp_record.product_variant_ids:
-            combination_binder = self.get_binder_for_model(
+            combination_binder = self.binder_for(
             'prestashop.product.combination')
             for product in self.erp_record.product_variant_ids:
                 combination_ext_id = combination_binder.to_backend(
@@ -353,9 +353,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('description_html', 'description'),
         ('available_now', 'available_now'),
         ('available_later', 'available_later'),
-        ("description_sale", "description"),
-        ('description', 'description_short'),
-                              ]
+        ]
         trans = TranslationPrestashopExporter(self.environment)
         translated_fields = self.convert_languages(
             trans.get_record_by_lang(record.id), translatable_fields)
