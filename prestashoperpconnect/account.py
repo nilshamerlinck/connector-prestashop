@@ -14,7 +14,7 @@ from openerp.addons.connector.unit.mapper import only_create
 from .backend import prestashop
 from .unit.backend_adapter import GenericAdapter
 from .unit.mapper import PrestashopImportMapper
-from .unit.import_synchronizer import PrestashopImportSynchronizer
+from .unit.import_synchronizer import PrestashopImporter
 from .connector import add_checkpoint
 
 
@@ -25,7 +25,7 @@ class RefundAdapter(GenericAdapter):
 
 
 @prestashop
-class RefundImport(PrestashopImportSynchronizer):
+class RefundImporter(PrestashopImporter):
     _model_name = 'prestashop.refund'
 
     def _import_dependencies(self):
@@ -273,4 +273,3 @@ class RefundMapper(PrestashopImportMapper):
     @mapping
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
-

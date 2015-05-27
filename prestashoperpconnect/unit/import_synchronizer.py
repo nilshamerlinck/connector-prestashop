@@ -28,7 +28,7 @@ from datetime import datetime
 from datetime import timedelta
 from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from openerp.addons.connector.queue.job import job
-from openerp.addons.connector.unit.synchronizer import ImportSynchronizer
+from openerp.addons.connector.unit.synchronizer import Importer
 from openerp.addons.connector.connector import ConnectorUnit
 from ..backend import prestashop
 from ..connector import get_environment
@@ -46,7 +46,7 @@ from ..connector import add_checkpoint
 _logger = logging.getLogger(__name__)
 
 
-class PrestashopImportSynchronizer(ImportSynchronizer):
+class PrestashopImporter(Importer):
     """ Base importer for Prestashop """
 
     def __init__(self, environment):
@@ -54,7 +54,7 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
         :param environment: current environment (backend, session, ...)
         :type environment: :py:class:`connector.connector.Environment`
         """
-        super(PrestashopImportSynchronizer, self).__init__(environment)
+        super(PrestashopImporter, self).__init__(environment)
         self.prestashop_id = None
         self.prestashop_record = None
 
@@ -151,8 +151,8 @@ class PrestashopImportSynchronizer(ImportSynchronizer):
             )
 
 
-class BatchImportSynchronizer(ImportSynchronizer):
-    """ The role of a BatchImportSynchronizer is to search for a list of
+class BatchImporter(Importer):
+    """ The role of a BatchImporter is to search for a list of
     items to import, then it can either import them directly or delay
     the import of each item separately.
     """
@@ -205,14 +205,14 @@ class AddCheckpoint(ConnectorUnit):
 
 
 @prestashop
-class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
+class PaymentMethodsImporter(BatchImporter):
     _model_name = 'payment.method'
 
     def run(self, filters=None, **kwargs):
         if filters is None:
             filters = {}
         filters['display'] = '[id,payment]'
-        return super(PaymentMethodsImportSynchronizer, self).run(
+        return super(PaymentMethodsImporter, self).run(
             filters, **kwargs
         )
 
@@ -230,7 +230,7 @@ class PaymentMethodsImportSynchronizer(BatchImportSynchronizer):
 
 
 @prestashop
-class DirectBatchImport(BatchImportSynchronizer):
+class DirectBatchImporter(BatchImporter):
     """ Import the PrestaShop Shop Groups + Shops
 
     They are imported directly because this is a rare and fast operation,
@@ -254,7 +254,7 @@ class DirectBatchImport(BatchImportSynchronizer):
 
 
 @prestashop
-class DelayedBatchImport(BatchImportSynchronizer):
+class DelayedBatchImporter(BatchImporter):
     """ Delay import of the records """
     _model_name = [
         'prestashop.res.partner.category',
@@ -282,7 +282,7 @@ class DelayedBatchImport(BatchImportSynchronizer):
 
 
 @prestashop
-class ResPartnerRecordImport(PrestashopImportSynchronizer):
+class ResPartnerRecordImporter(PrestashopImporter):
     _model_name = 'prestashop.res.partner'
 
     def _import_dependencies(self):
@@ -307,7 +307,7 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class SimpleRecordImport(PrestashopImportSynchronizer):
+class SimpleRecordImporter(PrestashopImporter):
     """ Import one simple record """
     _model_name = [
         'prestashop.shop.group',
@@ -318,7 +318,7 @@ class SimpleRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class MailMessageRecordImport(PrestashopImportSynchronizer):
+class MailMessageRecordImporter(PrestashopImporter):
     """ Import one simple record """
     _model_name = 'prestashop.mail.message'
 
@@ -338,16 +338,16 @@ class MailMessageRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class SupplierRecordImport(PrestashopImportSynchronizer):
+class SupplierRecordImporter(PrestashopImporter):
     """ Import one simple record """
     _model_name = 'prestashop.supplier'
 
     def _create(self, record):
         try:
-            return super(SupplierRecordImport, self)._create(record)
+            return super(SupplierRecordImporter, self)._create(record)
         except ZeroDivisionError:
             del record['image']
-            return super(SupplierRecordImport, self)._create(record)
+            return super(SupplierRecordImporter, self)._create(record)
 
     def _after_import(self, erp_id):
         binder = self.binder_for(self._model_name)
@@ -362,7 +362,7 @@ class SupplierRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class SupplierInfoImport(PrestashopImportSynchronizer):
+class SupplierInfoImporter(PrestashopImporter):
     _model_name = 'prestashop.product.supplierinfo'
 
     def _import_dependencies(self):
@@ -468,7 +468,7 @@ class SaleImportRule(ConnectorUnit):
 
 
 @prestashop
-class SaleOrderImport(PrestashopImportSynchronizer):
+class SaleOrderImporter(PrestashopImporter):
     _model_name = ['prestashop.sale.order']
 
     def _import_dependencies(self):
@@ -533,7 +533,7 @@ class SaleOrderImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class TranslatableRecordImport(PrestashopImportSynchronizer):
+class TranslatableRecordImporter(PrestashopImporter):
     """ Import one translatable record """
     _model_name = []
 
@@ -643,7 +643,7 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class PartnerCategoryRecordImport(TranslatableRecordImport):
+class PartnerCategoryRecordImporter(TranslatableRecordImporter):
     _model_name = [
         'prestashop.res.partner.category',
     ]
@@ -664,7 +664,7 @@ class PartnerCategoryRecordImport(TranslatableRecordImport):
 
 
 @prestashop
-class ProductCategoryImport(TranslatableRecordImport):
+class ProductCategoryImporter(TranslatableRecordImporter):
     _model_name = [
         'prestashop.product.category',
     ]
@@ -691,7 +691,7 @@ class ProductCategoryImport(TranslatableRecordImport):
 
 
 @prestashop
-class TemplateRecordImport(TranslatableRecordImport):
+class TemplateRecordImporter(TranslatableRecordImporter):
     """ Import one translatable record """
     _model_name = [
         'prestashop.product.template',
@@ -853,7 +853,7 @@ class TemplateRecordImport(TranslatableRecordImport):
 
 
 @prestashop
-class SaleOrderStateImport(TranslatableRecordImport):
+class SaleOrderStateImporter(TranslatableRecordImporter):
     """ Import one translatable record """
     _model_name = [
         'prestashop.sale.order.state',
@@ -867,7 +867,7 @@ class SaleOrderStateImport(TranslatableRecordImport):
 
 
 @prestashop
-class ProductImageImport(PrestashopImportSynchronizer):
+class ProductImageImporter(PrestashopImporter):
     _model_name = [
         'prestashop.product.image',
     ]
@@ -881,13 +881,13 @@ class ProductImageImport(PrestashopImportSynchronizer):
         self.image_id = image_id
 
         try:
-            super(ProductImageImport, self).run(image_id)
+            super(ProductImageImporter, self).run(image_id)
         except PrestaShopWebServiceError:
             pass
 
 
 @prestashop
-class SaleOrderLineRecordImport(PrestashopImportSynchronizer):
+class SaleOrderLineRecordImporter(PrestashopImporter):
     _model_name = [
         'prestashop.sale.order.line',
     ]
@@ -918,7 +918,7 @@ class SaleOrderLineRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class ProductPricelistImport(TranslatableRecordImport):
+class ProductPricelistImporter(TranslatableRecordImporter):
     _model_name = [
         'prestashop.groups.pricelist',
     ]
@@ -928,7 +928,7 @@ class ProductPricelistImport(TranslatableRecordImport):
     }
 
     def _run_record(self, prestashop_record, lang_code, erp_id=None):
-        return super(ProductPricelistImport, self)._run_record(
+        return super(ProductPricelistImporter, self)._run_record(
             prestashop_record, lang_code, erp_id=erp_id
         )
 
@@ -937,7 +937,7 @@ class ProductPricelistImport(TranslatableRecordImport):
 def import_batch(session, model_name, backend_id, filters=None, **kwargs):
     """ Prepare a batch import of records from Prestashop """
     env = get_environment(session, model_name, backend_id)
-    importer = env.get_connector_unit(BatchImportSynchronizer)
+    importer = env.get_connector_unit(BatchImporter)
     importer.run(filters=filters, **kwargs)
 
 
@@ -945,7 +945,7 @@ def import_batch(session, model_name, backend_id, filters=None, **kwargs):
 def import_record(session, model_name, backend_id, prestashop_id):
     """ Import a record from Prestashop """
     env = get_environment(session, model_name, backend_id)
-    importer = env.get_connector_unit(PrestashopImportSynchronizer)
+    importer = env.get_connector_unit(PrestashopImporter)
     importer.run(prestashop_id)
 
 
@@ -954,7 +954,7 @@ def import_product_image(session, model_name, backend_id, product_tmpl_id,
                          image_id):
     """Import a product image"""
     env = get_environment(session, model_name, backend_id)
-    importer = env.get_connector_unit(PrestashopImportSynchronizer)
+    importer = env.get_connector_unit(PrestashopImporter)
     importer.run(product_tmpl_id, image_id)
 
 

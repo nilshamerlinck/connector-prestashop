@@ -17,8 +17,8 @@ from openerp import SUPERUSER_ID
 from openerp.osv import fields, orm
 from backend import prestashop
 from .unit.backend_adapter import GenericAdapter
-from .unit.import_synchronizer import PrestashopImportSynchronizer
-from .unit.import_synchronizer import TranslatableRecordImport
+from .unit.import_synchronizer import PrestashopImporter
+from .unit.import_synchronizer import TranslatableRecordImporter
 from .unit.import_synchronizer import import_batch
 from .unit.mapper import PrestashopImportMapper
 from .unit.import_synchronizer import import_record
@@ -29,7 +29,7 @@ from openerp.osv.orm import browse_record_list
 from openerp.addons.product.product import check_ean
 from .unit.backend_adapter import PrestaShopCRUDAdapter
 
-from .product import ProductInventoryExport
+from .product import ProductInventoryExporter
 
 from prestapyt import PrestaShopWebServiceError
 
@@ -47,7 +47,7 @@ class ProductCombinationAdapter(GenericAdapter):
 
 
 @prestashop
-class ProductCombinationRecordImport(PrestashopImportSynchronizer):
+class ProductCombinationImporter(PrestashopImporter):
     _model_name = 'prestashop.product.combination'
 
     def _import_dependencies(self):
@@ -239,7 +239,7 @@ class ProductCombinationOptionAdapter(GenericAdapter):
 
 
 @prestashop
-class ProductCombinationOptionRecordImport(PrestashopImportSynchronizer):
+class ProductCombinationOptionImporter(PrestashopImporter):
     _model_name = 'prestashop.product.combination.option'
 
     def _import_values(self):
@@ -263,7 +263,7 @@ class ProductCombinationOptionRecordImport(PrestashopImportSynchronizer):
                                             [('name', '=', name)])
         if len(attribute_ids) == 0:
             # if we don't find it, we create a prestashop_product_combination
-            super(ProductCombinationOptionRecordImport, self).run(ext_id)
+            super(ProductCombinationOptionImporter, self).run(ext_id)
         else:
             # else, we create only a prestashop.product.combination.option
             context = self._context()
@@ -325,7 +325,7 @@ class ProductCombinationOptionValueAdapter(GenericAdapter):
 
 
 @prestashop
-class ProductCombinationOptionValueRecordImport(TranslatableRecordImport):
+class ProductCombinationOptionValueImporter(TranslatableRecordImporter):
     _model_name = 'prestashop.product.combination.option.value'
 
     _translatable_fields = {
@@ -363,7 +363,7 @@ class ProductCombinationOptionValueMapper(PrestashopImportMapper):
 
 
 @prestashop
-class CombinationInventoryExport(ProductInventoryExport):
+class CombinationInventoryExporter(ProductInventoryExporter):
     _model_name = ['prestashop.product.combination']
 
     def get_filter(self, template):

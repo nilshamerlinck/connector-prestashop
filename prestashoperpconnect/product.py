@@ -30,10 +30,10 @@ from openerp.addons.product.product import check_ean
 
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.event import on_record_write
-from openerp.addons.connector.unit.synchronizer import ExportSynchronizer
-from .unit.import_synchronizer import DelayedBatchImport
-from .unit.import_synchronizer import PrestashopImportSynchronizer
-from .unit.import_synchronizer import import_record
+from openerp.addons.connector.unit.synchronizer import Exporter
+from .unit.import_synchronizer import (DelayedBatchImporter,
+                                       PrestashopImporter,
+                                       import_record)
 from openerp.addons.connector.unit.mapper import mapping
 
 from prestapyt import PrestaShopWebServiceError
@@ -332,7 +332,7 @@ class TemplateAdapter(GenericAdapter):
 
 
 @prestashop
-class ProductInventoryExport(ExportSynchronizer):
+class ProductInventoryExporter(Exporter):
     _model_name = ['prestashop.product.template']
 
     def get_filter(self, template):
@@ -352,14 +352,14 @@ class ProductInventoryExport(ExportSynchronizer):
 
 
 @prestashop
-class ProductInventoryBatchImport(DelayedBatchImport):
+class ProductInventoryBatchImporter(DelayedBatchImporter):
     _model_name = ['_import_stock_available']
 
     def run(self, filters=None, **kwargs):
         if filters is None:
             filters = {}
         filters['display'] = '[id_product,id_product_attribute]'
-        return super(ProductInventoryBatchImport, self).run(filters, **kwargs)
+        return super(ProductInventoryBatchImporter, self).run(filters, **kwargs)
 
     def _run_page(self, filters, **kwargs):
         records = self.backend_adapter.get(filters)
@@ -379,7 +379,7 @@ class ProductInventoryBatchImport(DelayedBatchImport):
 
 
 @prestashop
-class ProductInventoryImport(PrestashopImportSynchronizer):
+class ProductInventoryImporter(PrestashopImporter):
     _model_name = ['_import_stock_available']
 
     def _get_quantity(self, record):
@@ -505,11 +505,11 @@ def export_inventory(session, model_name, record_id, fields=None):
     template = session.browse(model_name, record_id)
     backend_id = template.backend_id.id
     env = get_environment(session, model_name, backend_id)
-    inventory_exporter = env.get_connector_unit(ProductInventoryExport)
+    inventory_exporter = env.get_connector_unit(ProductInventoryExporter)
     return inventory_exporter.run(record_id, fields)
 
 @job
 def import_inventory(session, backend_id):
     env = get_environment(session, '_import_stock_available', backend_id)
-    inventory_importer = env.get_connector_unit(ProductInventoryBatchImport)
+    inventory_importer = env.get_connector_unit(ProductInventoryBatchImporter)
     return inventory_importer.run()

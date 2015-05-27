@@ -27,8 +27,8 @@ from openerp.addons.connector.unit.mapper import (mapping,
                                                   )
 from .unit.backend_adapter import GenericAdapter
 from .unit.mapper import PrestashopImportMapper
-from .unit.import_synchronizer import (DelayedBatchImport,
-                                       PrestashopImportSynchronizer,
+from .unit.import_synchronizer import (DelayedBatchImporter,
+                                       PrestashopImporter,
                                        )
 from .backend import prestashop
 
@@ -49,7 +49,7 @@ class DeliveryCarrierAdapter(GenericAdapter):
 
 
 @prestashop
-class DeliveryCarrierImport(PrestashopImportSynchronizer):
+class DeliveryCarrierImporter(PrestashopImporter):
     _model_name = ['prestashop.delivery.carrier']
 
 
@@ -105,7 +105,7 @@ class CarrierImportMapper(PrestashopImportMapper):
 
 
 @prestashop
-class DeliveryCarrierBatchImport(DelayedBatchImport):
+class DeliveryCarrierBatchImporter(DelayedBatchImporter):
     """ Import the Prestashop Carriers.
     """
     _model_name = ['prestashop.delivery.carrier']

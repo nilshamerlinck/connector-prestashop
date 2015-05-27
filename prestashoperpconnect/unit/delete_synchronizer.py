@@ -23,11 +23,11 @@
 
 from openerp.tools.translate import _
 from openerp.addons.connector.queue.job import job
-from openerp.addons.connector.unit.synchronizer import DeleteSynchronizer
+from openerp.addons.connector.unit.synchronizer import Deleter
 from ..connector import get_environment
 
 
-class PrestashopDeleteSynchronizer(DeleteSynchronizer):
+class PrestashopDeleter(Deleter):
     """ Base deleter for Prestashop """
 
     def run(self, external_id):
@@ -43,5 +43,5 @@ class PrestashopDeleteSynchronizer(DeleteSynchronizer):
 def export_delete_record(session, model_name, backend_id, external_id):
     """ Delete a record on Prestashop """
     env = get_environment(session, model_name, backend_id)
-    deleter = env.get_connector_unit(PrestashopDeleteSynchronizer)
+    deleter = env.get_connector_unit(PrestashopDeleter)
     return deleter.run(external_id)
