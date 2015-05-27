@@ -166,17 +166,17 @@ class ProductTemplateExport(PrestashopExporter):
         """ Export the dependencies for the product"""
         #TODO add export of category
         #Comprobamos si los atributos y valores estan creados
-        attribute_binder = self.get_binder_for_model(
+        attribute_binder = self.binder_for(
             'prestashop.product.combination.option')
-        option_binder = self.get_binder_for_model(
+        option_binder = self.binder_for(
             'prestashop.product.combination.option.value')
-        combination_binder = self.get_binder_for_model(
+        combination_binder = self.binder_for(
             'prestashop.product.combination')
         attribute_obj = self.session.pool[
             'prestashop.product.combination.option']
         for line in self.erp_record.attribute_line_ids:
             attribute_ext_id = attribute_binder.to_backend(
-                line.attribute_id.id, unwrap=True)
+                line.attribute_id.id, wrap=True)
             if not attribute_ext_id:
                 ctx = self.session.context.copy()
                 ctx['connector_no_export'] = True
@@ -193,8 +193,7 @@ class ProductTemplateExport(PrestashopExporter):
                     'prestashop.product.combination.option',
                     attribute_ext_id)
             for value in line.value_ids:
-                value_ext_id = option_binder.to_backend(value.id,
-                                                        unwrap=True)
+                value_ext_id = option_binder.to_backend(value.id, wrap=True)
                 if not value_ext_id:
                     ctx = self.session.context.copy()
                     ctx['connector_no_export'] = True
@@ -216,7 +215,7 @@ class ProductTemplateExport(PrestashopExporter):
                 if not product.attribute_value_ids:
                     continue
                 combination_ext_id = combination_binder.to_backend(
-                    product.id, unwrap=True)
+                    product.id, wrap=True)
                 if not combination_ext_id:
                     ctx = self.session.context.copy()
                     ctx['connector_no_export'] = True
@@ -236,7 +235,7 @@ class ProductTemplateExport(PrestashopExporter):
             'prestashop.product.combination')
             for product in self.erp_record.product_variant_ids:
                 combination_ext_id = combination_binder.to_backend(
-                    product.id, unwrap=True)
+                    product.id, wrap=True)
                 if combination_ext_id:
                     product_product_write(self.session, 'product.product',
                                           product.id, {})
@@ -247,7 +246,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
     _model_name = 'prestashop.product.template'
 
     direct = [
-        ('lst_price', 'price'),
+        ('list_price', 'price'),
         ('available_for_order', 'available_for_order'),
         ('show_price', 'show_price'),
         ('online_only', 'online_only'),
@@ -277,21 +276,21 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
     def _get_template_feature(self, record):
         #Buscar las product.attribute y sus valores para asociarlos al producto
         template_feature = []
-        attribute_binder = self.get_binder_for_model(
+        attribute_binder = self.binder_for(
             'prestashop.product.combination.option')
-        option_binder = self.get_binder_for_model(
+        option_binder = self.binder_for(
             'prestashop.product.combination.option.value')
         for line in record.attribute_line_ids:
             feature_dict = {}
             attribute_ext_id = attribute_binder.to_backend(
-                line.attribute_id.id, unwrap=True)
+                line.attribute_id.id, wrap=True)
             if not attribute_ext_id:
                 continue
-            feature_dict = {'id': attribute_ext_id}
+            feature_dict = {'id': attribute_ext_id, 'custom': ''}
             values_ids = []
             for value in line.value_ids:
                 value_ext_id = option_binder.to_backend(value.id,
-                                                        unwrap=True)
+                                                        wrap=True)
                 if not value_ext_id:
                     continue
                 values_ids.append(value_ext_id)
@@ -302,11 +301,12 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
 
     def _get_product_category(self, record):
         ext_categ_ids = []
-        binder = self.get_binder_for_model('prestashop.product.category')
+        binder = self.binder_for('prestashop.product.category')
         categories = list(set(record.categ_ids + record.categ_id))
         for category in categories:
-            ext_categ_ids.append(
-                {'id': binder.to_backend(category.id, unwrap=True)})
+            ext_id = binder.to_backend(category.id, wrap=True)
+            if ext_id:
+                ext_categ_ids.append({'id': ext_id})
         return ext_categ_ids
 
     @mapping
@@ -322,14 +322,16 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
 
     @mapping
     def categ_id(self, record):
-        binder = self.get_binder_for_model('prestashop.product.category')
-        ext_categ_id = binder.to_backend(record.categ_id.id, unwrap=True)
-        return {'id_category_default': ext_categ_id}
+        binder = self.binder_for('prestashop.product.category')
+        ext_categ_id = binder.to_backend(record.categ_id.id, wrap=True)
+        if ext_categ_id:
+            return {'id_category_default': ext_categ_id}
+        return {}
 
     @mapping
     def tax_ids(self, record):
-        binder = self.get_binder_for_model('prestashop.account.tax.group')
-        ext_id = binder.to_backend(record.tax_group_id.id, unwrap=True)
+        binder = self.binder_for('prestashop.account.tax.group')
+        ext_id = binder.to_backend(record.tax_group_id.id, wrap=True)
         return {'id_tax_rules_group': ext_id}
 
     @mapping
