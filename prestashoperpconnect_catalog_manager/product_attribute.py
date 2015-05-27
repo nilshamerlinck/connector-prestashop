@@ -107,7 +107,7 @@ def prestashop_attribute_option_written(session, model_name, record_id,
     export_record.delay(session, model_name, record_id, priority=20)
 
 
-@on_record_write(model_names='product.attribute.value')
+@on_record_write(model_names='product.attribute')
 def product_attribute_written(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
@@ -119,7 +119,7 @@ def product_attribute_written(session, model_name, record_id, fields=None):
                             binding.id, fields, priority=20)
 
 
-@on_record_write(model_names='produc.attribute.value')
+@on_record_write(model_names='product.attribute.value')
 def attribute_option_written(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
@@ -179,6 +179,7 @@ class ProductCombinationOptionExportMapper(TranslationPrestashopExportMapper):
         translated_fields = self.convert_languages(trans.get_record_by_lang(record.id),translatable_fields)
         return translated_fields
 
+
 @prestashop
 class ProductCombinationOptionValueExport(PrestashopExporter):
     _model_name = 'prestashop.product.combination.option.value'
@@ -187,10 +188,9 @@ class ProductCombinationOptionValueExport(PrestashopExporter):
         """ Export the dependencies for the record"""
         attribute_id = self.erp_record.attribute_id.id
         # export product attribute
-        binder = self.get_binder_for_model(
-            'prestashop.product.combination.option')
-        if not binder.to_backend(attribute_id, unwrap=True):
-            exporter = self.get_connector_unit_for_model(
+        binder = self.binder_for('prestashop.product.combination.option')
+        if not binder.to_backend(attribute_id, wrap=True):
+            exporter = self.unit_for(
                 TranslationPrestashopExporter,
                 'prestashop.product.combination.option')
             exporter.run(attribute_id)
@@ -206,26 +206,26 @@ class ProductCombinationOptionValueExportMapper(TranslationPrestashopExportMappe
 
     @mapping
     def prestashop_product_attribute_id(self, record):
-        attribute_binder = self.get_binder_for_model(
+        attribute_binder = self.binder_for(
             'prestashop.product.combination.option.value')
         return {
             'id_feature': attribute_binder.to_backend(record.attribute_id.id,
-                                                      unwrap=True)
+                                                      wrap=True)
         }
 
     @mapping
     def prestashop_product_group_attribute_id(self, record):
-        attribute_binder = self.get_binder_for_model(
+        attribute_binder = self.binder_for(
             'prestashop.product.combination.option')
         return {
-            'id_attribute_group': attribute_binder.to_backend(record.attribute_id.id,
-                                                      unwrap=True)
+            'id_attribute_group': attribute_binder.to_backend(
+                record.attribute_id.id, wrap=True)
         }
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
-        ('name', 'name'),
-                              ]
+            ('name', 'name'),
+        ]
         trans = TranslationPrestashopExporter(self.environment)
         translated_fields = self.convert_languages(trans.get_record_by_lang(record.id),translatable_fields)
         return translated_fields
