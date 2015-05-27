@@ -196,11 +196,8 @@ class TranslationPrestashopExporter(PrestashopExporter):
         # for each languages:
         for language in languages:
             # get the translated record
-            record = self.model.browse(
-                self.session.cr,
-                self.session.uid,
-                record_id,
-                context={'lang': language['code']}
+            record = self.model.with_context(lang=language['code']).browse(
+                record_id
             )
             # put it in the dict
             records[language['prestashop_id']] = record
@@ -215,13 +212,11 @@ def export_record(session, model_name, binding_id, fields=None):
     exporter = env.get_connector_unit(PrestashopExporter)
     mapper = env.get_connector_unit(ExportMapper)
 
-    import pdb; pdb.set_trace()
     if fields:
         exported_fields = set(mapper.exported_fields)
         fields_to_export = set(fields)
         if not exported_fields & fields_to_export:
 #TODO log ?
-            print 'lla'
             return True
     #TODO FIX PRESTASHOP
     #prestashop do not support partial edit
