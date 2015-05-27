@@ -182,7 +182,8 @@ class TranslationPrestashopExporter(PrestashopExporter):
     @property
     def mapper(self):
         if self._mapper is None:
-            self._mapper = self.environment.get_connector_unit(TranslationPrestashopExportMapper)
+            self._mapper = self.environment.get_connector_unit(
+                TranslationPrestashopExportMapper)
         return self._mapper
 
     def _map_data(self, fields=None):
@@ -207,7 +208,7 @@ class TranslationPrestashopExporter(PrestashopExporter):
 @job
 def export_record(session, model_name, binding_id, fields=None):
     """ Export a record on Prestashop """
-    record = session.browse(model_name, binding_id)
+    record = session.env[model_name].browse(binding_id)
     env = get_environment(session, model_name, record.backend_id.id)
     exporter = env.get_connector_unit(PrestashopExporter)
     mapper = env.get_connector_unit(ExportMapper)
@@ -216,7 +217,9 @@ def export_record(session, model_name, binding_id, fields=None):
         exported_fields = set(mapper.exported_fields)
         fields_to_export = set(fields)
         if not exported_fields & fields_to_export:
-#TODO log ?
+            _logger.info(
+                "Skip export because modified fields: %s are not part of "
+                "exported fields %s", fields, mapper.exported_fields)
             return True
     #TODO FIX PRESTASHOP
     #prestashop do not support partial edit
