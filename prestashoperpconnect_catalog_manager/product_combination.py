@@ -113,13 +113,13 @@ class ProductCombinationExport(TranslationPrestashopExporter):
     def _export_dependencies(self):
         """ Export the dependencies for the product"""
         #TODO add export of category
-        attribute_binder = self.get_binder_for_model(
+        attribute_binder = self.binder_for(
             'prestashop.product.combination.option')
-        option_binder = self.get_binder_for_model(
+        option_binder = self.binder_for(
             'prestashop.product.combination.option.value')
         for value in self.erp_record.attribute_value_ids:
             attribute_ext_id = attribute_binder.to_backend(
-                value.attribute_id.id, unwrap=True)
+                value.attribute_id.id, wrap=True)
             if not attribute_ext_id:
                 ctx = self.session.context.copy()
                 ctx['connector_no_export'] = True
@@ -133,8 +133,7 @@ class ProductCombinationExport(TranslationPrestashopExporter):
                     'prestashop.product.combination.option',
                     attribute_ext_id
                 )
-            value_ext_id = option_binder.to_backend(value.id,
-                                                    unwrap=True)
+            value_ext_id = option_binder.to_backend(value.id, wrap=True)
             if not value_ext_id:
                 ctx = self.session.context.copy()
                 ctx['connector_no_export'] = True
@@ -162,7 +161,7 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
     ]
 
     def get_main_template_id(self, record):
-        template_binder = self.get_binder_for_model(
+        template_binder = self.binder_for(
             'prestashop.product.template')
         return template_binder.to_backend(record.main_template_id.id)
 
@@ -172,11 +171,10 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
 
     def _get_product_option_value(self, record):
         option_value = []
-        option_binder = self.get_binder_for_model(
+        option_binder = self.binder_for(
             'prestashop.product.combination.option.value')
         for value in record.attribute_value_ids:
-            value_ext_id = option_binder.to_backend(
-                value.id, unwrap=True)
+            value_ext_id = option_binder.to_backend(value.id, wrap=True)
             if value_ext_id:
                 option_value.append({'id': value_ext_id})
         return option_value
