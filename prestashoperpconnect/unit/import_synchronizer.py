@@ -643,8 +643,7 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
 
 
 @prestashop
-class PartnerCategoryRecordImport(PrestashopImportSynchronizer):
-    """ Import one translatable record """
+class PartnerCategoryRecordImport(TranslatableRecordImport):
     _model_name = [
         'prestashop.res.partner.category',
     ]
