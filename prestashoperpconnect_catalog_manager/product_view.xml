@@ -7,7 +7,6 @@
             <field name="model">prestashop.product.template</field>
             <field name="inherit_id"
                    ref="prestashoperpconnect.product_connector_presta_form_view"/>
-            <field name="type">form</field>
             <field name="arch" type="xml">
                 <xpath expr="/form/group[2]" position="inside">
                     <group col="4" colspan="4">
@@ -26,6 +25,47 @@
                     </group>
                 </xpath>
             </field>
+        </record>
+
+        <record id="product_category_form_view" model="ir.ui.view">
+            <field name="name">prestashoperpconnect.product.category.form</field>
+            <field name="model">product.category</field>
+            <field name="inherit_id" ref="product.product_category_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[@name='parent']" position="after">
+                    <group name="connector" colspan="4" string="Prestashop Bindings">
+                        <field name="prestashop_bind_ids" nolabel="1"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="prestashop_product_category_form_view" model="ir.ui.view">
+           <field name="model">prestashop.product.category</field>
+           <field name="arch" type="xml">
+                <form string="Prestashop fields">
+                    <group col="4" colspan="4">
+                        <field name="backend_id"/>
+                        <field name="default_shop_id"/>
+                        <field name="link_rewrite"/>
+                        <field name="description"/>
+                        <field name="meta_title"/>
+                        <field name="meta_description"/>
+                        <field name="meta_keywords"/>
+                        <field name="is_active"/>
+                    </group>
+                </form>
+           </field>
+       </record>
+
+       <record id="prestashop_product_category_tree_view" model="ir.ui.view">
+           <field name="model">prestashop.product.category</field>
+           <field name="arch" type="xml">
+                <tree string="Prestashop fields">
+                    <field name="backend_id"/>
+                    <field name="prestashop_id"/>
+                </tree>
+           </field>
         </record>
     </data>
 </openerp>

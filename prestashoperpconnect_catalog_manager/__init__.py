@@ -27,3 +27,4 @@ from . import product
 from . import product_attribute
 from . import product_combination
 from . import wizard
+from . import product_category
