@@ -69,7 +69,7 @@ class DirectBinder(ConnectorUnit):
                 # Do nothing for the PS IDs that are already mapped
                 _logger.debug(
                     "[%s] PS ID %s is already mapped to OERP ID %s"
-                    % (self.model._description, ps_id, erp_id)
+                    % (self.model._name, ps_id, erp_id)
                 )
                 nr_ps_already_mapped += 1
             else:
@@ -98,7 +98,7 @@ class DirectBinder(ConnectorUnit):
                         binder.bind(ps_id, ps_erp_id)
                         _logger.debug(
                             "[%s] Mapping PS '%s' (%s) to OERP '%s' (%s)"
-                            % (self.model._description,
+                            % (self.model._name,
                                ps_dict['name'],  # not hardcode if needed
                                ps_dict[self._ps_field],
                                record[erp_rec_name],
@@ -109,28 +109,29 @@ class DirectBinder(ConnectorUnit):
                 if not mapping_found:
                     # if it doesn't match, I just print a warning
                     _logger.warning(
-                        "[%s] PS '%s' (%s) was not mapped to any OERP entry"
-                        % (self.model._description,
+                            "[%s] PS '%s' (ps id: %s, value: %s) was not mapped to any OERP entry"
+                        % (self.model._name,
                            ps_dict['name'],
+                           ps_id,
                            ps_dict[self._ps_field]))
 
                     nr_ps_not_mapped += 1
 
         _logger.info(
             "[%s] Synchro between OERP and PS successfull"
-            % self.model._description
+            % self.model._name
         )
         _logger.info(
             "[%s] Number of PS entries already mapped = %s"
-            % (self.model._description, nr_ps_already_mapped)
+            % (self.model._name, nr_ps_already_mapped)
         )
         _logger.info(
             "[%s] Number of PS entries mapped = %s"
-            % (self.model._description, nr_ps_mapped)
+            % (self.model._name, nr_ps_mapped)
         )
         _logger.info(
             "[%s] Number of PS entries not mapped = %s"
-            % (self.model._description, nr_ps_not_mapped)
+            % (self.model._name, nr_ps_not_mapped)
         )
 
         return True
@@ -202,6 +203,6 @@ class AccountTaxDirectBinder(DirectBinder):
             record['price_include'] or not record['price_include']
         if taxes_inclusion_test and record['type_tax_use'] == 'sale' and \
                 abs(erp_val*100 - float(ps_val)) < 0.01 and \
-                self.backend_record.company_id.id == record['company_id'][0]:
+                self.backend_record.company_id.id == record.company_id.id:
             return True
         return False
