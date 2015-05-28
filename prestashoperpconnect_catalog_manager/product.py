@@ -67,6 +67,23 @@ def prestashop_product_template_write(session, model_name, record_id, fields):
         export_record.delay(session, model_name, record_id, fields,
                             priority=20)
 
+@on_record_create(model_names='prestashop.product.image')
+def prestashop_product_image_create(session, model_name, record_id, fields):
+    if session.context.get('connector_no_export'):
+        return
+    export_record.delay(session, model_name, record_id)
+
+@on_record_create(model_names='product.image')
+def product_image_create(session, model_name, record_id, fields):
+    if session.context.get('connector_no_export'):
+        return
+    model = session.pool.get(model_name)
+    record = model.browse(session.cr, session.uid,
+                          record_id, context=session.context)
+    for prestashop_product in record.product_id.prestashop_bind_ids:
+        binding = session.pool.get('prestashop.product.image').create(
+            session.cr, session.uid, {'openerp_id': record_id, 'backend_id': prestashop_product.backend_id.id}, context=session.context)
+
 
 #@on_record_create(model_names='product.template')
 #def product_template_create(session, model_name, record_id, fields):
@@ -358,3 +375,27 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         translated_fields = self.convert_languages(
             trans.get_record_by_lang(record.id), translatable_fields)
         return translated_fields
+
+
+@prestashop
+class ProductImageExport(PrestashopExporter):
+    _model_name = 'prestashop.product.image'
+
+
+@prestashop
+class ProductImageExportMapper(PrestashopExportMapper):
+    _model_name = 'prestashop.product.image'
+
+    direct = [
+        ('file_db_store', 'file_db_store')
+        ]
+
+    @mapping
+    def filename(self, record):
+        return {'filename': record['name'] + record['extension2']}
+
+    @mapping
+    def product_id(self, record):
+        binder = self.binder_for('prestashop.product.template')
+        ext_product_id = binder.to_backend(record.product_id.id, wrap=True)
+        return {'product_id': ext_product_id}
