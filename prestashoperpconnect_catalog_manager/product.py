@@ -56,6 +56,13 @@ def prestashop_product_template_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     prestashoperpconnect.delay_export(session, model_name, record_id, vals)
+    #Create prestashop image for each image
+    record = session.env[model_name].browse(record_id)
+    for image in record.image_ids:
+        binding = session.env['prestashop.product.image'].create({
+            'openerp_id': image.id,
+            'backend_id': record.backend_id.id
+            })
 
 
 @on_record_write(model_names='prestashop.product.template')
@@ -267,7 +274,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('online_only', 'online_only'),
         ('weight', 'weight'),
         ('standard_price', 'wholesale_price'),
-        ('reference', 'reference'),
+        ('default_code', 'reference'),
         ('default_shop_id', 'id_shop_default'),
         ('active', 'active'),
         ('ean13', 'ean13'),
@@ -361,7 +368,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         return {}
 
     @changed_by(
-        'name', 'link_rewrite', 'meta_title', 'metea_description',
+        'name', 'link_rewrite', 'meta_title', 'meta_description',
         'meta_keywords', 'tags', 'description_short_html', 'description_html',
         'available_now', 'available_later'
     )
@@ -386,7 +393,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
 
 
 @prestashop
-class ProductImageExport(PrestashopExporter):
+class ProductImageExporter(PrestashopExporter):
     _model_name = 'prestashop.product.image'
 
 
