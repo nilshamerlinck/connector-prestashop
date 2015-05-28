@@ -52,29 +52,30 @@ import openerp.addons.decimal_precision as dp
 
 
 @on_record_create(model_names='prestashop.product.template')
-def prestashop_product_template_create(session, model_name, record_id, fields):
+def prestashop_product_template_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export(session, model_name, record_id)
+    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
 
 
 @on_record_write(model_names='prestashop.product.template')
-def prestashop_product_template_write(session, model_name, record_id, fields):
+def prestashop_product_template_write(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    fields = list(set(fields).difference(set(INVENTORY_FIELDS)))
+    fields = list(set(vals).difference(set(INVENTORY_FIELDS)))
     if fields:
-        prestashoperpconnect.delay_export(session, model_name, record_id, fields)
+        prestashoperpconnect.delay_export(session, model_name, record_id, vals)
 
 
 @on_record_create(model_names='prestashop.product.image')
-def prestashop_product_image_create(session, model_name, record_id, fields):
+def prestashop_product_image_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export(session, model_name, record_id, fields)
+    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
+
 
 @on_record_create(model_names='product.image')
-def product_image_create(session, model_name, record_id, fields):
+def product_image_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     image = session.env[model_name].browse(record_id)
@@ -83,6 +84,7 @@ def product_image_create(session, model_name, record_id, fields):
             'openerp_id': record_id,
             'backend_id': prestashop_product.backend_id.id
             })
+
 
 #@on_record_create(model_names='product.template')
 #def product_template_create(session, model_name, record_id, fields):
@@ -97,10 +99,11 @@ def product_image_create(session, model_name, record_id, fields):
 
 
 @on_record_write(model_names='product.template')
-def product_template_write(session, model_name, record_id, fields):
+def product_template_write(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
+    prestashoperpconnect.delay_export_all_bindings(
+        session, model_name, record_id, vals)
 
 
 #@on_record_write(model_names='product.product')

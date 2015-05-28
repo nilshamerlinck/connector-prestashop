@@ -74,22 +74,23 @@ import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 @on_record_write(model_names='prestashop.product.combination.option')
 @on_record_create(model_names='prestashop.product.combination.option.value')
 @on_record_write(model_names='prestashop.product.combination.option.value')
-def delay_export_attibutes(session, model_name, record_id, fields=None):
+def delay_export_attibutes(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export(session, model_name, record_id, fields)
+    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
 
 
 @on_record_write(model_names='product.attribute')
 @on_record_write(model_names='product.attribute.value')
-def delay_export_binding_attributes(session, model_name, record_id, fields=None):
+def delay_export_binding_attributes(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
+    prestashoperpconnect.delay_export_all_bindings(
+        session, model_name, record_id, vals)
 
 
 @on_record_create(model_names='product.attribute.value')
-def attribute_option_create(session, model_name, record_id, fields=None):
+def attribute_option_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     record = session.env[model_name].browse(record_id)

@@ -45,30 +45,31 @@ import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 
 @on_record_create(model_names='prestashop.product.combination')
-def prestashop_product_combination_create(session, model_name, record_id, fields=None):
+def prestashop_product_combination_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export(session, model_name, record_id)
+    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
 
 
 @on_record_write(model_names='prestashop.product.combination')
-def prestashop_product_combination_write(session, model_name,
-                                         record_id, fields):
+def prestashop_product_combination_write(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    fields = list(set(fields).difference(set(INVENTORY_FIELDS)))
+    fields = list(set(vals).difference(set(INVENTORY_FIELDS)))
     if fields:
-        prestashoperpconnect.delay_export(session, model_name, record_id, fields)
+        prestashoperpconnect.delay_export(
+            session, model_name, record_id, fields=vals)
 
 
 @on_record_write(model_names='product.product')
-def product_product_write(session, model_name, record_id, fields):
+def product_product_write(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     record = session.env[model_name].browse(record_id)
     if not record.is_product_variant:
         return
-    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
+    prestashoperpconnect.delay_export_all_bindings(
+        session, model_name, record_id, vals)
 
 
 
