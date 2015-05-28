@@ -85,7 +85,7 @@ def prestashop_product_attribute_created(session, model_name, record_id, fields=
 
 
 @on_record_create(model_names='prestashop.product.combination.option.value')
-def prestashop_product_atrribute_value_created(session, model_name, record_id, fields=None):
+def prestashop_product_attribute_value_created(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
     export_record.delay(session, model_name, record_id, priority=20)
@@ -121,9 +121,11 @@ def attribute_option_create(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
     record = session.env[model_name].browse(record_id)
+    prestashop_model_name = 'prestashop.product.combination.option.value'
     for prestashop_attribute in record.attribute_id.prestashop_bind_ids:
-        binding = session.env['prestashop.product.combination.option.value'].create(
-            {'openerp_id': record_id, 'backend_id': prestashop_attribute.backend_id.id})
+        binding = session.env[prestashop_model_name].create({
+            'openerp_id': record_id,
+            'backend_id': prestashop_attribute.backend_id.id})
 
 @on_record_write(model_names='product.attribute.value')
 def attribute_option_written(session, model_name, record_id, fields=None):
