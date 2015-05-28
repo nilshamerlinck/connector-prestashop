@@ -48,7 +48,9 @@ class prestashop_product_category(orm.Model):
             required=True,
             ondelete='cascade'
         ),
-        'default_shop_id': fields.many2one('prestashop.shop'),
+        'default_shop_id': fields.many2one(
+            'prestashop.shop',
+            string='Prestashop shop'),
         'date_add': fields.datetime(
             'Created At (on PrestaShop)',
             readonly=True
@@ -57,12 +59,17 @@ class prestashop_product_category(orm.Model):
             'Updated At (on PrestaShop)',
             readonly=True
         ),
+        'is_active': fields.boolean('Active in Prestashop'),
         'description': fields.char('Description', translate=True),
         'link_rewrite': fields.char('Friendly URL', translate=True),
         'meta_description': fields.char('Meta description', translate=True),
         'meta_keywords': fields.char('Meta keywords', translate=True),
         'meta_title': fields.char('Meta title', translate=True),
     }
+
+    _defaults = {
+        'is_active': True,
+        }
 
 
 class product_image(orm.Model):
