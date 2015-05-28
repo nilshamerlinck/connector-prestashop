@@ -26,6 +26,7 @@
 
 import base64
 import logging
+from openerp.tools import config
 from prestapyt import PrestaShopWebServiceDict
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
 from ..backend import prestashop
@@ -82,6 +83,7 @@ class PrestaShopCRUDAdapter(CRUDAdapter):
             self.backend_record.webservice_key
         )
 
+
     def search(self, filters=None):
         """ Search records according to some criterias
         and returns a list of ids """
@@ -115,8 +117,13 @@ class GenericAdapter(PrestaShopCRUDAdapter):
     _prestashop_model = None
 
     def connect(self):
+        debug = False
+        if config['log_level'] == 'debug':
+            debug = True
         return PrestaShopWebServiceDict(self.prestashop.api_url,
-                                        self.prestashop.webservice_key)
+                                        self.prestashop.webservice_key,
+                                        debug=debug)
+
 
     def search(self, filters=None):
         """ Search records according to some criterias
@@ -224,15 +231,33 @@ class ProductImageAdapter(PrestaShopCRUDAdapter):
     _model_name = 'prestashop.product.image'
     _prestashop_image_model = 'products'
 
+    def connect(self):
+        debug = False
+        if config['log_level'] == 'debug':
+            debug = True
+        return PrestaShopWebServiceImage(self.prestashop.api_url,
+                                         self.prestashop.webservice_key,
+                                         debug=debug)
+
+
     def read(self, product_tmpl_id, image_id, options=None):
-        api = PrestaShopWebServiceImage(self.prestashop.api_url,
-                                        self.prestashop.webservice_key)
+        api = self.connect()
         return api.get_image(
             self._prestashop_image_model,
             product_tmpl_id,
             image_id,
             options=options
         )
+
+    def create(self, attributes=None):
+        api = self.connect()
+        image_binary = attributes['file_db_store']
+        img_filename = attributes['filename']
+        image_url = 'images/%s/%s' % (
+            self._prestashop_image_model, str(attributes['product_id']))
+        return api.add(
+            image_url, content=image_binary, img_filename=img_filename)
+
 
 @prestashop
 class SupplierImageAdapter(PrestaShopCRUDAdapter):

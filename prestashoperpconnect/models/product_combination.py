@@ -11,9 +11,7 @@ the main product.
 '''
 
 from openerp.osv import fields, orm
-
 from openerp.addons.connector.session import ConnectorSession
-
 from ..unit.import_synchronizer import import_record
 
 
@@ -104,10 +102,10 @@ class prestashop_product_combination_option(orm.Model):
         ),
 
     }
-    
+
     _defaults = {
-                 'group_type': 'select',
-                 }
+        'group_type': 'select',
+        }
 
 
 class product_attribute_value(orm.Model):
