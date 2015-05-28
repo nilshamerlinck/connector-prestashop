@@ -77,13 +77,12 @@ def prestashop_product_image_create(session, model_name, record_id, fields):
 def product_image_create(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    model = session.pool.get(model_name)
-    record = model.browse(session.cr, session.uid,
-                          record_id, context=session.context)
-    for prestashop_product in record.product_id.prestashop_bind_ids:
-        binding = session.pool.get('prestashop.product.image').create(
-            session.cr, session.uid, {'openerp_id': record_id, 'backend_id': prestashop_product.backend_id.id}, context=session.context)
-
+    image = session.env[model_name].browse(record_id)
+    for prestashop_product in image.product_id.prestashop_bind_ids:
+        binding = session.env['prestashop.product.image'].create({
+            'openerp_id': record_id,
+            'backend_id': prestashop_product.backend_id.id
+            })
 
 #@on_record_create(model_names='product.template')
 #def product_template_create(session, model_name, record_id, fields):
@@ -101,9 +100,7 @@ def product_image_create(session, model_name, record_id, fields):
 def product_template_write(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    model = session.pool.get(model_name)
-    record = model.browse(session.cr, session.uid,
-                          record_id, context=session.context)
+    record = session.env[model_name].browse(record_id)
     for binding in record.prestashop_bind_ids:
         export_record.delay(session, 'prestashop.product.template', binding.id,
                             fields, priority=20)

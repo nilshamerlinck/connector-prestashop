@@ -61,9 +61,7 @@ def prestashop_product_combination_write(session, model_name,
 def product_product_write(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    model = session.pool.get(model_name)
-    record = model.browse(session.cr, session.uid,
-                          record_id, context=session.context)
+    record = session.env[model_name].browse(record_id)
     if not record.is_product_variant:
         return
     for binding in record.prestashop_bind_ids:
@@ -97,10 +95,10 @@ def product_product_write(session, model_name, record_id, fields):
 class prestashop_product_combination(orm.Model):
     _inherit = 'prestashop.product.combination'
     _columns = {
-                'minimal_quantity': fields.integer(
-                                                   'Minimal Quantity',
-                                                   help='Minimal Sale quantity',
-                                                   )}
+        'minimal_quantity': fields.integer(
+            'Minimal Quantity',
+            help='Minimal Sale quantity',
+            )}
     _defaults = {
         'minimal_quantity': 1,
     }
