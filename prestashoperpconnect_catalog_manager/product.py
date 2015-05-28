@@ -23,23 +23,24 @@
 ###############################################################################
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.event import on_record_create, on_record_write
-from openerp.addons.connector.unit.mapper import ExportMapper, mapping
-
-from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
-    TranslationPrestashopExporter,
-    export_record
+from openerp.addons.connector.unit.mapper import (
+    ExportMapper,
+    mapping,
+    changed_by
 )
 
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
+    TranslationPrestashopExporter,
     PrestashopExporter,
     export_record
 )
 
-from openerp.addons.prestashoperpconnect.unit.mapper import \
-    TranslationPrestashopExportMapper
-
-from openerp.addons.prestashoperpconnect.unit.mapper import \
+from openerp.addons.prestashoperpconnect.unit.mapper import (
+    TranslationPrestashopExportMapper,
     PrestashopExportMapper
+)
+
+import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 from openerp.addons.prestashoperpconnect.connector import get_environment
 from openerp.addons.prestashoperpconnect.backend import prestashop
@@ -54,24 +55,23 @@ import openerp.addons.decimal_precision as dp
 def prestashop_product_template_create(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    export_record.delay(session, model_name, record_id, priority=20)
+    prestashoperpconnect.delay_export(session, model_name, record_id)
 
 
 @on_record_write(model_names='prestashop.product.template')
 def prestashop_product_template_write(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-
     fields = list(set(fields).difference(set(INVENTORY_FIELDS)))
     if fields:
-        export_record.delay(session, model_name, record_id, fields,
-                            priority=20)
+        prestashoperpconnect.delay_export(session, model_name, record_id, fields)
+
 
 @on_record_create(model_names='prestashop.product.image')
 def prestashop_product_image_create(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    export_record.delay(session, model_name, record_id)
+    prestashoperpconnect.delay_export(session, model_name, record_id, fields)
 
 @on_record_create(model_names='product.image')
 def product_image_create(session, model_name, record_id, fields):
@@ -100,10 +100,8 @@ def product_image_create(session, model_name, record_id, fields):
 def product_template_write(session, model_name, record_id, fields):
     if session.context.get('connector_no_export'):
         return
-    record = session.env[model_name].browse(record_id)
-    for binding in record.prestashop_bind_ids:
-        export_record.delay(session, 'prestashop.product.template', binding.id,
-                            fields, priority=20)
+    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
+
 
 #@on_record_write(model_names='product.product')
 #def product_product_write(session, model_name, record_id, fields):
@@ -323,6 +321,8 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
                 ext_categ_ids.append({'id': ext_id})
         return ext_categ_ids
 
+    #TODO changed by attribute_line_ids.value_ids
+    @changed_by('attribute_line_ids', 'categ_ids', 'categ_id')
     @mapping
     def associations(self, record):
         return {
@@ -334,6 +334,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
             }
         }
 
+    @changed_by('categ_id')
     @mapping
     def categ_id(self, record):
         binder = self.binder_for('prestashop.product.category')
@@ -342,18 +343,25 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
             return {'id_category_default': ext_categ_id}
         return {}
 
+    @changed_by('tax_group_id')
     @mapping
     def tax_ids(self, record):
         binder = self.binder_for('prestashop.account.tax.group')
         ext_id = binder.to_backend(record.tax_group_id.id, wrap=True)
         return {'id_tax_rules_group': ext_id}
 
+    @changed_by('available_date')
     @mapping
     def available_date(self, record):
         if record.available_date:
             return {'available_date': record.available_date}
         return {}
 
+    @changed_by(
+        'name', 'link_rewrite', 'meta_title', 'metea_description',
+        'meta_keywords', 'tags', 'description_short_html', 'description_html',
+        'available_now', 'available_later'
+    )
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
@@ -387,10 +395,12 @@ class ProductImageExportMapper(PrestashopExportMapper):
         ('file_db_store', 'file_db_store')
         ]
 
+    @changed_by('name', 'extension2')
     @mapping
     def filename(self, record):
         return {'filename': record['name'] + record['extension2']}
 
+    @changed_by('product_id')
     @mapping
     def product_id(self, record):
         binder = self.binder_for('prestashop.product.template')

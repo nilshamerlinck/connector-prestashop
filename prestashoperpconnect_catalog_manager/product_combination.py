@@ -23,7 +23,11 @@
 ###############################################################################
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.event import on_record_create, on_record_write
-from openerp.addons.connector.unit.mapper import ExportMapper, mapping
+from openerp.addons.connector.unit.mapper import (
+    ExportMapper,
+    mapping,
+    changed_by
+)
 
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
     TranslationPrestashopExporter,
@@ -37,13 +41,14 @@ from openerp.addons.prestashoperpconnect.backend import prestashop
 from openerp.addons.prestashoperpconnect.product import INVENTORY_FIELDS
 from openerp.osv import fields, orm
 import openerp.addons.decimal_precision as dp
+import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 
 @on_record_create(model_names='prestashop.product.combination')
 def prestashop_product_combination_create(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
-    export_record.delay(session, model_name, record_id, priority=20)
+    prestashoperpconnect.delay_export(session, model_name, record_id)
 
 
 @on_record_write(model_names='prestashop.product.combination')
@@ -53,8 +58,7 @@ def prestashop_product_combination_write(session, model_name,
         return
     fields = list(set(fields).difference(set(INVENTORY_FIELDS)))
     if fields:
-        export_record.delay(session, model_name, record_id,
-                            fields, priority=20)
+        prestashoperpconnect.delay_export(session, model_name, record_id, fields)
 
 
 @on_record_write(model_names='product.product')
@@ -64,10 +68,7 @@ def product_product_write(session, model_name, record_id, fields):
     record = session.env[model_name].browse(record_id)
     if not record.is_product_variant:
         return
-    for binding in record.prestashop_bind_ids:
-        export_record.delay(session,
-                            'prestashop.product.combination', binding.id,
-                            fields, priority=20)
+    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
 
 
 
@@ -163,6 +164,7 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
             'prestashop.product.template')
         return template_binder.to_backend(record.main_template_id.id)
 
+    @changed_by('main_template_id')
     @mapping
     def main_template_id(self, record):
         return {'id_product': self.get_main_template_id(record)}
@@ -177,6 +179,7 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
                 option_value.append({'id': value_ext_id})
         return option_value
 
+    @changed_by('attribute_value_ids')
     @mapping
     def associations(self, record):
         return {

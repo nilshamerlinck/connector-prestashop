@@ -26,29 +26,22 @@ from openerp.addons.connector.event import on_record_create, on_record_write
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
     export_record,
     TranslationPrestashopExporter,
-    )
-
-from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
-    export_record,
     PrestashopExporter,
     )
 
 #from openerp.addons.prestashoperpconnect.unit.binder import \
     #PrestashopModelBinder
-from openerp.addons.prestashoperpconnect.unit.mapper import \
-    TranslationPrestashopExportMapper
-
-
-from openerp.addons.prestashoperpconnect.unit.mapper import \
+from openerp.addons.prestashoperpconnect.unit.mapper import (
+    TranslationPrestashopExportMapper,
     PrestashopExportMapper
-
-
+)
 
 from openerp.addons.prestashoperpconnect.backend import prestashop
 from openerp.addons.prestashoperpconnect.unit.backend_adapter import \
     GenericAdapter
 from openerp.addons.connector.exception import InvalidDataError
-from openerp.addons.connector.unit.mapper import mapping
+from openerp.addons.connector.unit.mapper import mapping, changed_by
+import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 
 #class prestashop_product_combination_option_value(orm.Model):
@@ -78,43 +71,22 @@ from openerp.addons.connector.unit.mapper import mapping
 
 
 @on_record_create(model_names='prestashop.product.combination.option')
-def prestashop_product_attribute_created(session, model_name, record_id, fields=None):
-    if session.context.get('connector_no_export'):
-        return
-    export_record.delay(session, model_name, record_id, priority=20)
-
-
-@on_record_create(model_names='prestashop.product.combination.option.value')
-def prestashop_product_attribute_value_created(session, model_name, record_id, fields=None):
-    if session.context.get('connector_no_export'):
-        return
-    export_record.delay(session, model_name, record_id, priority=20)
-
-
 @on_record_write(model_names='prestashop.product.combination.option')
-def prestashop_product_attribute_written(session, model_name, record_id,
-                                         fields=None):
-    if session.context.get('connector_no_export'):
-        return
-    export_record.delay(session, model_name, record_id, priority=20)
-
-
+@on_record_create(model_names='prestashop.product.combination.option.value')
 @on_record_write(model_names='prestashop.product.combination.option.value')
-def prestashop_attribute_option_written(session, model_name, record_id,
-                                        fields=None):
+def delay_export_attibutes(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
-    export_record.delay(session, model_name, record_id, priority=20)
+    prestashoperpconnect.delay_export(session, model_name, record_id, fields)
 
 
 @on_record_write(model_names='product.attribute')
-def product_attribute_written(session, model_name, record_id, fields=None):
+@on_record_write(model_names='product.attribute.value')
+def delay_export_binding_attributes(session, model_name, record_id, fields=None):
     if session.context.get('connector_no_export'):
         return
-    record = session.env[model_name].browse(record_id)
-    for binding in record.prestashop_bind_ids:
-        export_record.delay(session, 'prestashop.product.combination.option',
-                            binding.id, fields, priority=20)
+    prestashoperpconnect.delay_export_all_bindings(session, model_name, record_id, fields)
+
 
 @on_record_create(model_names='product.attribute.value')
 def attribute_option_create(session, model_name, record_id, fields=None):
@@ -126,16 +98,6 @@ def attribute_option_create(session, model_name, record_id, fields=None):
         binding = session.env[prestashop_model_name].create({
             'openerp_id': record_id,
             'backend_id': prestashop_attribute.backend_id.id})
-
-@on_record_write(model_names='product.attribute.value')
-def attribute_option_written(session, model_name, record_id, fields=None):
-    if session.context.get('connector_no_export'):
-        return
-    record = session.env[model_name].browse(record_id)
-    for binding in record.prestashop_bind_ids:
-        export_record.delay(session,
-                            'prestashop.product.combination.option.value',
-                            binding.id, fields, priority=20)
 
 
 #@prestashop
@@ -175,6 +137,8 @@ class ProductCombinationOptionExportMapper(TranslationPrestashopExportMapper):
         ('group_type','group_type')
         #('name', 'name'),
     ]
+
+    @changed_by('name', 'public_name')
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
@@ -210,6 +174,7 @@ class ProductCombinationOptionValueExportMapper(TranslationPrestashopExportMappe
     direct = [('name', 'value')]
     #translatable_fields = [('name', 'value')]
 
+    @changed_by('attribute_id')
     @mapping
     def prestashop_product_attribute_id(self, record):
         attribute_binder = self.binder_for(
@@ -219,6 +184,7 @@ class ProductCombinationOptionValueExportMapper(TranslationPrestashopExportMappe
                                                       wrap=True)
         }
 
+    @changed_by('attribute_id')
     @mapping
     def prestashop_product_group_attribute_id(self, record):
         attribute_binder = self.binder_for(
@@ -227,6 +193,8 @@ class ProductCombinationOptionValueExportMapper(TranslationPrestashopExportMappe
             'id_attribute_group': attribute_binder.to_backend(
                 record.attribute_id.id, wrap=True)
         }
+
+    @changed_by('name')
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
