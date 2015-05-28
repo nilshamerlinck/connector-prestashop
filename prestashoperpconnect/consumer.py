@@ -42,7 +42,7 @@ def need_to_export(
     env = get_environment(session, model_name, backend_id)
     exported_fields = set(env.get_connector_unit(ExportMapper).exported_fields)
     if fields:
-        if not exported_fields & set(fields.keys()):
+        if not exported_fields & set(fields):
             _logger.debug(
                 "Skip export of %s because modified fields: %s are not part "
                 "of exported fields %s",
@@ -51,7 +51,7 @@ def need_to_export(
     return True
 
 
-def delay_export(session, model_name, record_id, fields=None):
+def delay_export(session, model_name, record_id, vals):
     """ Delay a job which export a binding record.
 
     (A binding record being a ``external.res.partner``,
@@ -59,12 +59,13 @@ def delay_export(session, model_name, record_id, fields=None):
     """
     if session.context.get('connector_no_export'):
         return
+    fields = vals.keys()
     if not need_to_export(session, model_name, record_id, fields=fields):
         return
     export_record.delay(session, model_name, record_id, fields=fields)
 
 
-def delay_export_all_bindings(session, model_name, record_id, fields=None):
+def delay_export_all_bindings(session, model_name, record_id, vals):
     """ Delay a job which export all the bindings of a record.
 
     In this case, it is called on records of normal models and will delay
@@ -72,6 +73,7 @@ def delay_export_all_bindings(session, model_name, record_id, fields=None):
     """
     if session.context.get('connector_no_export'):
         return
+    fields = vals.keys()
     record = session.env[model_name].browse(record_id)
     for binding in record.prestashop_bind_ids:
         if need_to_export(
