@@ -97,7 +97,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
             variant_image = self.session.browse('prestashop.product.image',
                                                 image_id)
             if variant_image:
-                if not variant_image.link:
+                if not variant_image.url:
                     return {'image_variant': variant_image.file_db_store}
                 else:
                     adapter = self.connector_unit_for(
