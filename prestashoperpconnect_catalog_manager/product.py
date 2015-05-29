@@ -78,7 +78,9 @@ def prestashop_product_template_write(session, model_name, record_id, vals):
 def prestashop_product_image_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
-    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
+# remove vals to force export when create
+# TODO think of a better way
+    prestashoperpconnect.delay_export(session, model_name, record_id, {})
 
 
 @on_record_create(model_names='product.image')

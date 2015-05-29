@@ -72,12 +72,19 @@ import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 @on_record_create(model_names='prestashop.product.combination.option')
 @on_record_write(model_names='prestashop.product.combination.option')
-@on_record_create(model_names='prestashop.product.combination.option.value')
 @on_record_write(model_names='prestashop.product.combination.option.value')
 def delay_export_attibutes(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     prestashoperpconnect.delay_export(session, model_name, record_id, vals)
+
+
+@on_record_create(model_names='prestashop.product.combination.option.value')
+def option_value_create(session, model_name, record_id, vals):
+    if session.context.get('connector_no_export'):
+        return
+#remove vals to force export for create
+    prestashoperpconnect.delay_export(session, model_name, record_id, {})
 
 
 @on_record_write(model_names='product.attribute')
