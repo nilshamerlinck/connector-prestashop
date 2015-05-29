@@ -159,19 +159,14 @@ class ProductCombinationOptionExportMapper(TranslationPrestashopExportMapper):
 
 
 @prestashop
-class ProductCombinationOptionValueExport(PrestashopExporter):
+class ProductCombinationOptionValueExporter(PrestashopExporter):
     _model_name = 'prestashop.product.combination.option.value'
 
     def _export_dependencies(self):
-        """ Export the dependencies for the record"""
-        attribute_id = self.erp_record.attribute_id.id
-        # export product attribute
-        binder = self.binder_for('prestashop.product.combination.option')
-        if not binder.to_backend(attribute_id, wrap=True):
-            exporter = self.unit_for(
-                TranslationPrestashopExporter,
-                'prestashop.product.combination.option')
-            exporter.run(attribute_id)
+        """ Export the product attribute """
+        self._export_dependency(attribute,
+                                'prestashop.product.combination.option',
+                                exporter_class=TranslationPrestashopExporter)
         return
 
 
