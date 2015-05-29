@@ -45,6 +45,7 @@ import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 from openerp.addons.prestashoperpconnect.connector import get_environment
 from openerp.addons.prestashoperpconnect.backend import prestashop
 from openerp.osv import fields, orm
+from .wizard.export_multiple_products import get_slug
 
 
 @on_record_create(model_names='prestashop.product.category')
@@ -69,12 +70,13 @@ class ProductCategoryExporter(PrestashopExporter):
 
     def _export_dependencies(self):
         """Export parent of the category"""
-        parent_id = self.erp_record.parent_id.id
-        binder = self.binder_for('prestashop.product.category')
-        if not binder.to_backend(parent_id, wrap=True):
-            exporter = self.unit_for(
-                PrestashopExporter, 'prestashop.product.category')
-            exporter.run(parent_id)
+        parent = self.erp_record.parent_id
+        if parent:
+            binding_extra_vals = {'link_rewrite': get_slug(parent.name)}
+            self._export_dependency(parent,
+                                    'prestashop.product.category',
+                                    exporter_class=ProductCategoryExporter,
+                                    binding_extra_vals=binding_extra_vals)
         return
 
 
