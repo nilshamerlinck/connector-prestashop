@@ -29,6 +29,7 @@ from openerp.addons.connector.unit.mapper import (
 )
 
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
+    TranslationPrestashopExporter,
     PrestashopExporter,
     export_record
 )
@@ -83,7 +84,7 @@ class ProductCategoryExportMapper(TranslationPrestashopExportMapper):
         ('sequence', 'position'),
         ('is_active', 'active'),
         ('default_shop_id', 'id_default_shop'),
-        (m2o_to_backend('parent_id', binding=self._model_name), 'id_parent')
+        (m2o_to_backend('parent_id', binding=_model_name), 'id_parent')
         ]
 
     @changed_by(

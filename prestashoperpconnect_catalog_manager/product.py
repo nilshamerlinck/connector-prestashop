@@ -26,7 +26,8 @@ from openerp.addons.connector.event import on_record_create, on_record_write
 from openerp.addons.connector.unit.mapper import (
     ExportMapper,
     mapping,
-    changed_by
+    changed_by,
+    m2o_to_backend
 )
 
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
@@ -283,7 +284,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('additional_shipping_cost', 'additional_shipping_cost'),
         ('minimal_quantity', 'minimal_quantity'),
         ('available_date', 'available_date'), #check date format
-        (m2o_backend('categ_id', binding='prestashop.product.category'),
+        (m2o_to_backend('categ_id', binding='prestashop.product.category'),
          'id_category_default'),
     ]
 
