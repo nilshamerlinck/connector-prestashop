@@ -20,7 +20,6 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.event import on_record_create, on_record_write
 from openerp.addons.connector.unit.mapper import (
     ExportMapper,
@@ -30,21 +29,17 @@ from openerp.addons.connector.unit.mapper import (
 )
 
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
-    TranslationPrestashopExporter,
     PrestashopExporter,
     export_record
 )
 
 from openerp.addons.prestashoperpconnect.unit.mapper import (
     TranslationPrestashopExportMapper,
-    PrestashopExportMapper
 )
 
 import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
-
 from openerp.addons.prestashoperpconnect.connector import get_environment
 from openerp.addons.prestashoperpconnect.backend import prestashop
-from openerp.osv import fields, orm
 from .wizard.export_multiple_products import get_slug
 
 
