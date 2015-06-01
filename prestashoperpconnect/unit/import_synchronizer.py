@@ -497,23 +497,6 @@ class SaleOrderImporter(PrestashopImporter):
             except PrestaShopWebServiceError:
                 pass
 
-    def _after_import(self, erp_order):
-        shipping_total = erp_order.total_shipping_tax_included \
-            if self.backend_record.taxes_included \
-            else erp_order.total_shipping_tax_excluded
-        if shipping_total:
-            sale_line_obj = self.environment.session.pool['sale.order.line']
-
-            sale_line_obj.create(
-                self.session.cr,
-                self.session.uid,
-                {'order_id': erp_order.openerp_id.id,
-                 'product_id': erp_order.openerp_id.carrier_id.product_id.id,
-                 'price_unit':  shipping_total,
-                 'is_delivery': True})
-        erp_order.openerp_id.recompute()
-        return True
-
     def _check_refunds(self, id_customer, id_order):
         backend_adapter = self.unit_for(GenericAdapter, 'prestashop.refund')
         filters = {'filter[id_customer]': id_customer}
@@ -1031,13 +1014,13 @@ def import_products(session, backend_id, since_date):
         filters,
         priority=15
     )
-    import_batch(
-        session,
-        'prestashop.product.template',
-        backend_id,
-        filters,
-        priority=15
-    )
+#    import_batch(
+#        session,
+#        'prestashop.product.template',
+#        backend_id,
+#        filters,
+#        priority=15
+#    )
     session.pool.get('prestashop.backend').write(
         session.cr,
         session.uid,
