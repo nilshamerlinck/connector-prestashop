@@ -56,6 +56,7 @@ class DeliveryCarrierImporter(PrestashopImporter):
 @prestashop
 class CarrierImportMapper(PrestashopImportMapper):
     _model_name = 'prestashop.delivery.carrier'
+
     direct = [
         ('name', 'name_ext'),
         ('name', 'name'),
