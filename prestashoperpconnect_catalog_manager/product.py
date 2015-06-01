@@ -284,8 +284,8 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('additional_shipping_cost', 'additional_shipping_cost'),
         ('minimal_quantity', 'minimal_quantity'),
         ('available_date', 'available_date'), #check date format
-        (m2o_to_backend('categ_id', binding='prestashop.product.category'),
-         'id_category_default'),
+#        (m2o_to_backend('categ_id', binding='prestashop.product.category'),
+#         'id_category_default'),
     ]
 
 #    translatable_fields = [
@@ -350,12 +350,14 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
             }
         }
 
-    @changed_by('tax_group_id')
+    @changed_by('taxes_id')
     @mapping
     def tax_ids(self, record):
-        binder = self.binder_for('prestashop.account.tax.group')
-        ext_id = binder.to_backend(record.tax_group_id.id, wrap=True)
-        return {'id_tax_rules_group': ext_id}
+        if record.taxes_id:
+            binder = self.binder_for('prestashop.account.tax.group')
+            ext_id = binder.to_backend(record.taxes_id[0].group_id.id, wrap=True)
+            return {'id_tax_rules_group': ext_id}
+        return {}
 
     @changed_by(
         'name', 'link_rewrite', 'meta_title', 'meta_description',
