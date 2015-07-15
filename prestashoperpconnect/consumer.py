@@ -40,7 +40,7 @@ def need_to_export(
     if not backend_id:
         backend_id = session.env[model_name].browse(binding_id).backend_id.id
     env = get_environment(session, model_name, backend_id)
-    exported_fields = set(env.get_connector_unit(ExportMapper).exported_fields)
+    exported_fields = set(env.get_connector_unit(ExportMapper)._changed_by_fields)
     if fields:
         if not exported_fields & set(fields):
             _logger.debug(
