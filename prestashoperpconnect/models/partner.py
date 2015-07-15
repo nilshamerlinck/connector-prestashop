@@ -75,7 +75,7 @@ class prestashop_res_partner(orm.Model):
                     ['shop_group_id'],
                     10
                 ),
-                'prestashop.website': (
+                'prestashop.shop.group': (
                     _get_prest_partner_from_website,
                     ['backend_id'],
                     20

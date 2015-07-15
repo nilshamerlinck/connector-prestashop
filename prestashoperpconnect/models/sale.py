@@ -108,6 +108,10 @@ class prestashop_sale_order(orm.Model):
     _inherit = 'prestashop.binding'
     _inherits = {'sale.order': 'openerp_id'}
 
+    def _get_order_from_shop(self, cr, uid, ids, context=None):
+        return self.pool['prestashop.sale.order'].search(
+            cr, uid, [('shop_id', 'in', ids)], context=context)
+
     _columns = {
         'openerp_id': fields.many2one(
             'sale.order',
@@ -151,6 +155,28 @@ class prestashop_sale_order(orm.Model):
             digits_compute=dp.get_precision('Account'),
             readonly=True
         ),
+        'prestashop_order_id': fields.integer('Prestashop order ID'),
+        'shop_group_id': fields.related(
+            'shop_id',
+            'shop_group_id',
+            type='many2one',
+            relation='prestashop.shop.group',
+            string='Prestashop Shop Group',
+            store={
+                'prestashop.sale.order': (
+                    lambda self, cr, uid, ids, c=None: ids,
+                    ['shop_id'],
+                    10),
+                'prestashop.shop': (
+                    _get_order_from_shop, ['shop_group_id'], 20),
+            },
+            readonly=True
+        ),
+        'shop_id': fields.many2one(
+            'prestashop.shop',
+            string='Prestashop Shop'
+        ),
+
     }
 
 
