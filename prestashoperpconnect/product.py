@@ -105,7 +105,7 @@ class ProductImageMapper(PrestashopImportMapper):
     _model_name = 'prestashop.product.image'
 
     direct = [
-        ('content', 'file_db_store'),
+        ('content', 'image'),
     ]
 
     @mapping

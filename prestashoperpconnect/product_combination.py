@@ -98,7 +98,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
                                                 image_id)
             if variant_image:
                 if not variant_image.url:
-                    return {'image_variant': variant_image.file_db_store}
+                    return {'image_variant': variant_image.image}
                 else:
                     adapter = self.connector_unit_for(
                         PrestaShopCRUDAdapter,

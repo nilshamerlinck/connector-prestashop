@@ -252,8 +252,8 @@ class ProductImageAdapter(PrestaShopCRUDAdapter):
 
     def create(self, attributes=None):
         api = self.connect()
-        image_binary = attributes['file_db_store']
-        img_filename = attributes['filename']
+        image_binary = attributes['image']
+        img_filename = attributes['file_name']
         image_url = 'images/%s/%s' % (
             self._prestashop_image_model, str(attributes['product_id']))
         return api.add(
