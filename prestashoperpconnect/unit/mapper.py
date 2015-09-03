@@ -471,12 +471,10 @@ class SaleOrderMapper(PrestashopImportMapper):
             shop_ids = self.session.search('prestashop.shop', [
                 ('backend_id', '=', self.backend_record.id)
             ])
-            shop = self.session.read('prestashop.shop', shop_ids[0], ['openerp_id'])
-            return {'shop_id': shop['openerp_id'][0]}
-        return {'shop_id': self.get_openerp_id(
-            'prestashop.shop',
-            record['id_shop']
-        )}
+            return {'shop_id': shop_ids[0]}
+        shop_binder = self.binder_for('prestashop.shop')
+        shop_id = shop_binder.to_openerp(record['id_shop'])
+        return {'shop_id': shop_id}
 
     @mapping
     def partner_id(self, record):
