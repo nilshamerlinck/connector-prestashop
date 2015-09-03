@@ -619,7 +619,7 @@ class SaleOrderLineMapper(PrestashopImportMapper):
             product = self.session.env['product.product'].search([
                 ('product_tmpl_id', '=', template_id),
                 ('company_id', '=', self.backend_record.company_id.id)])
-            if product is None:
+            if not product:
                 return self.tax_id(record)
             product_id = product[0].id
         return {'product_id': product_id}
