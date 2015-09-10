@@ -70,6 +70,7 @@ class SaleOrderAdapter(GenericAdapter):
             result += api.search(self._prestashop_model, filters)
         return result
 
+
 @prestashop
 class OrderCarriers(GenericAdapter):
     _model_name = '__not_exit_prestashop.order_carrier'
@@ -91,6 +92,7 @@ class PaymentMethodAdapter(GenericAdapter):
             return [methods]
         return methods
 
+
 @prestashop
 class SaleOrderLineAdapter(GenericAdapter):
     _model_name = 'prestashop.sale.order.line'
@@ -111,47 +113,38 @@ class SaleStateExporter(Exporter):
         self.backend_adapter.update_sale_state(prestashop_id, datas)
 
 
-# TODO improve me, don't try to export state if the sale order does not come
-#      from a prestashop connector
 # TODO improve me, make the search on the sale order backend only
 @on_record_write(model_names='sale.order')
-def prestashop_sale_state_modified(session, model_name, record_id,
-                                   fields=None):
-    if 'state' in fields:
-        sale = session.browse(model_name, record_id)
+def prestashop_sale_state_modified(session, model_name, record_id, vals):
+    if 'state' in vals:
+        sale = session.env[model_name].browse(record_id)
+        if not sale.prestashop_bind_ids:
+            return True
         # a quick test to see if it is worth trying to export sale state
-        states = session.search(
-            'sale.order.state.list',
+        states = session.env['sale.order.state.list'].search(
             [('name', '=', sale.state)]
         )
         if states:
-            export_sale_state.delay(session, record_id, priority=20)
+            export_sale_state.delay(session, model_name, record_id, priority=20)
     return True
 
 
 def find_prestashop_state(session, sale_state, backend_id):
-    state_list_model = 'sale.order.state.list'
-    state_list_ids = session.search(
-        state_list_model,
-        [('name', '=', sale_state)]
-    )
-    for state_list in session.browse(state_list_model, state_list_ids):
+    state_list_model = session.env['sale.order.state.list']
+    for state_list in state_list_model.search([('name', '=', sale_state)]):
         if state_list.prestashop_state_id.backend_id.id == backend_id:
             return state_list.prestashop_state_id.prestashop_id
     return None
 
 
 @job
-def export_sale_state(session, record_id):
-    inherit_model = 'prestashop.sale.order'
-    sale_ids = session.search(inherit_model, [('openerp_id', '=', record_id)])
-    if not isinstance(sale_ids, list):
-        sale_ids = [sale_ids]
-    for sale in session.browse(inherit_model, sale_ids):
+def export_sale_state(session, model_name, record_id):
+    binding_model = session.env['prestashop.sale.order']
+    for sale in binding_model.search([('openerp_id', '=', record_id)]):
         backend_id = sale.backend_id.id
         new_state = find_prestashop_state(session, sale.state, backend_id)
         if new_state is None:
             continue
-        env = get_environment(session, inherit_model, backend_id)
-        sale_exporter = env.get_connector_unit(SaleStateExport)
+        env = get_environment(session, 'prestashop.sale.order', backend_id)
+        sale_exporter = env.get_connector_unit(SaleStateExporter)
         sale_exporter.run(sale.prestashop_id, new_state)
