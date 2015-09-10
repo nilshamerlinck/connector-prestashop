@@ -184,7 +184,7 @@ class prestashop_product_template(orm.Model):
 
 
 @prestashop
-class ProductTemplateExport(PrestashopExporter):
+class ProductTemplateExport(TranslationPrestashopExporter):
     _model_name = 'prestashop.product.template'
 
     def _export_dependencies(self):
@@ -279,7 +279,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('standard_price', 'wholesale_price'),
         ('default_code', 'reference'),
         ('default_shop_id', 'id_shop_default'),
-        ('active', 'active'),
+        ('always_available', 'active'),
         ('ean13', 'ean13'),
         ('additional_shipping_cost', 'additional_shipping_cost'),
         ('minimal_quantity', 'minimal_quantity'),
@@ -378,7 +378,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('available_now', 'available_now'),
         ('available_later', 'available_later'),
         ]
-        trans = TranslationPrestashopExporter(self.environment)
+        trans = self.unit_for(TranslationPrestashopExporter)
         translated_fields = self.convert_languages(
             trans.get_record_by_lang(record.id), translatable_fields)
         return translated_fields
