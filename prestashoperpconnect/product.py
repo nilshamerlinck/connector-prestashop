@@ -81,9 +81,9 @@ class ProductCategoryMapper(PrestashopImportMapper):
     def parent_id(self, record):
         if record['id_parent'] == '0':
             return {}
-        return {'parent_id': self.get_openerp_id(
-            'prestashop.product.category',
-            record['id_parent']
+        binder = self.binder_for('prestashop.product.category')
+        return {'parent_id': binder.to_openerp(
+            record['id_parent'], unwrap=True
         )}
 
     @mapping
@@ -110,9 +110,9 @@ class ProductImageMapper(PrestashopImportMapper):
 
     @mapping
     def product_id(self, record):
-        return {'product_id': self.get_openerp_id(
-            'prestashop.product.template',
-            record['id_product']
+        binder = self.binder_for('prestashop;product.template')
+        return {'product_id': binder.to_openerp(
+            record['id_product'], unwrap=True
         )}
 
     @mapping
@@ -169,12 +169,12 @@ class TemplateMapper(PrestashopImportMapper):
         return len(combinations) != 0
 
     def _template_code_exists(self, code):
-        model = self.session.pool.get('product.template')
-        template_ids = model.search(self.session.cr, SUPERUSER_ID, [
+        model = self.session.env['product.template']
+        templates = model.sudo().search([
             ('default_code', '=', code),
             ('company_id', '=', self.backend_record.company_id.id),
         ])
-        return len(template_ids) > 0
+        return len(templates) > 0
 
     @mapping
     def default_code(self, record):
@@ -225,9 +225,9 @@ class TemplateMapper(PrestashopImportMapper):
     def categ_id(self, record):
         if not int(record['id_category_default']):
             return
-        category_id = self.get_openerp_id(
-            'prestashop.product.category',
-            record['id_category_default']
+        binder = self.binder_for('prestashop.product.category')
+        category_id = binder.to_openerp(
+            record['id_category_default'], unwrap=True
         )
         if category_id is not None:
             return {'categ_id': category_id}
@@ -238,9 +238,8 @@ class TemplateMapper(PrestashopImportMapper):
             categories = [categories]
         if not categories:
             return
-        category_id = self.get_openerp_id(
-            'prestashop.product.category',
-            categories[0]['id']
+        category_id = binder.to_openerp(
+            categories[0]['id'], unwrap=True
         )
         return {'categ_id': category_id}
 
@@ -252,13 +251,12 @@ class TemplateMapper(PrestashopImportMapper):
         if not isinstance(categories, list):
             categories = [categories]
         product_categories = []
+        binder = self.binder_for('prestashop.product.category')
         for category in categories:
-            category_id = self.get_openerp_id(
-                'prestashop.product.category',
-                category['id']
+            category_id = binder.to_openerp(
+                category['id'], unwrap=True
             )
             product_categories.append(category_id)
-
         return {'categ_ids': [(6, 0, product_categories)]}
 
     @mapping
@@ -283,9 +281,9 @@ class TemplateMapper(PrestashopImportMapper):
     def taxes_id(self, record):
         if record['id_tax_rules_group'] == '0':
             return {}
-        tax_group_id = self.get_openerp_id(
-            'prestashop.account.tax.group',
-            record['id_tax_rules_group']
+        binder = self.binder_for('prestashop.account.tax.group')
+        tax_group_id = binder.to_openerp(
+            record['id_tax_rules_group'], unwrap=True
         )
         tax_group_model = self.session.pool.get('account.tax.group')
         tax_ids = tax_group_model.read(

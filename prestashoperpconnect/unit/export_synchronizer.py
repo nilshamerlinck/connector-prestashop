@@ -67,7 +67,7 @@ class PrestashopBaseExporter(Exporter):
 
     def _get_openerp_data(self):
         """ Return the raw OpenERP data for ``self.binding_id`` """
-        return self.session.browse(self.model._name, self.binding_id)
+        return self.session.env[self.model._name].browse(self.binding_id)
 
     def run(self, binding_id, *args, **kwargs):
         """ Run the synchronization
@@ -311,8 +311,7 @@ class TranslationPrestashopExporter(PrestashopExporter):
     @property
     def mapper(self):
         if self._mapper is None:
-            self._mapper = self.environment.get_connector_unit(
-                TranslationPrestashopExportMapper)
+            self._mapper = self.unit_for(TranslationPrestashopExportMapper)
         return self._mapper
 
     def _map_data(self, fields=None):

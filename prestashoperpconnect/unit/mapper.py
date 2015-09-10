@@ -42,7 +42,7 @@ from openerp.addons.connector_ecommerce.sale import ShippingLineBuilder
 
 
 class PrestashopImportMapper(ImportMapper):
-    
+
     #get_openerp_id is deprecated use the binder intead
     #we should have only 1 way to map the field to avoid error
     def get_openerp_id(self, model, prestashop_id):
@@ -204,16 +204,12 @@ class PartnerImportMapper(PrestashopImportMapper):
         if record.get('id_lang'):
             erp_lang_id = binder.to_openerp(record['id_lang'])
         if erp_lang_id is None:
-            data_obj = self.session.pool.get('ir.model.data')
+            data_obj = self.session.env['ir.model.data']
             erp_lang_id = data_obj.get_object_reference(
-                self.session.cr,
-                self.session.uid,
                 'base',
                 'lang_en')[1]
-        model = self.environment.session.pool.get('prestashop.res.lang')
+        model = self.session.env['prestashop.res.lang']
         erp_lang = model.read(
-            self.session.cr,
-            self.session.uid,
             erp_lang_id,
         )
         return {'lang': erp_lang['code']}
@@ -290,10 +286,8 @@ class AddressImportMapper(PrestashopImportMapper):
 
     @mapping
     def parent_id(self, record):
-        parent_id = self.get_openerp_id(
-            'prestashop.res.partner',
-            record['id_customer']
-        )
+        binder = self.binder_for('prestashop.res.partner')
+        parent_id = binder.to_openerp(record['id_customer'], unwrap=True)
         if record['vat_number']:
             vat_number = record['vat_number'].replace('.', '').replace(' ', '')
             if self._check_vat(vat_number):
@@ -428,21 +422,19 @@ class SaleOrderMapper(PrestashopImportMapper):
         discount_mappers = []
         for discount_id in discount_ids:
             discount = adapter.read(discount_id)
-            mapper = self._init_child_mapper(
-                'prestashop.sale.order.line.discount')
-            #map_record = mapper.map_record(discount, parent=record)
-            #map_values = map_record.values()
-            #discount_mappers.append(map_values)
-            mapper.convert_child(discount, parent_values=record)
-            discount_mappers.append(mapper)
+            mapper = self.unit_for(
+                ImportMapper, 'prestashop.sale.order.line.discount')
+            map_record = mapper.map_record(discount, parent=record)
+            map_values = map_record.values()
+            discount_mappers.append(map_values)
         return discount_mappers
 
     def _sale_order_exists(self, name):
-        ids = self.session.search('sale.order', [
+        sales = self.session.env['sale.order'].search([
             ('name', '=', name),
             ('company_id', '=', self.backend_record.company_id.id),
         ])
-        return len(ids) == 1
+        return len(sales) == 1
 
     @mapping
     def name(self, record):
@@ -478,23 +470,23 @@ class SaleOrderMapper(PrestashopImportMapper):
 
     @mapping
     def partner_id(self, record):
-        return {'partner_id': self.get_openerp_id(
-            'prestashop.res.partner',
-            record['id_customer']
+        binder = self.binder_for('prestashop.res.partner')
+        return {'partner_id': binder.to_openerp(
+            record['id_customer'], unwrap=True
         )}
 
     @mapping
     def partner_invoice_id(self, record):
-        return {'partner_invoice_id': self.get_openerp_id(
-            'prestashop.address',
-            record['id_address_invoice']
+        binder = self.binder_for('prestashop.address')
+        return {'partner_invoice_id': binder.to_openerp(
+            record['id_address_invoice'], unwrap=True
         )}
 
     @mapping
     def partner_shipping_id(self, record):
-        return {'partner_shipping_id': self.get_openerp_id(
-            'prestashop.address',
-            record['id_address_delivery']
+        binder = self.binder_for('prestashop.address')
+        return {'partner_shipping_id': binder.to_openerp(
+            record['id_address_delivery'], unwrap=True
         )}
 
 #    @mapping
@@ -507,27 +499,26 @@ class SaleOrderMapper(PrestashopImportMapper):
 
     @mapping
     def payment(self, record):
-        method_ids = self.session.search(
-            'payment.method',
+        methods = self.session.env['payment.method'].search(
             [
                 ('name', '=', record['payment']),
                 ('company_id', '=', self.backend_record.company_id.id),
             ]
         )
-        assert method_ids, ("Payment method '%s' has not been found ; "
+        assert methods, ("Payment method '%s' has not been found ; "
                             "you should create it manually (in Sales->"
                             "Configuration->Sales->Payment Methods" %
                             record['payment'])
-        method_id = method_ids[0]
+        method_id = methods[0].id
         return {'payment_method_id': method_id}
 
     @mapping
     def carrier_id(self, record):
         if record['id_carrier'] == '0':
             return {}
-        return {'carrier_id': self.get_openerp_id(
-            'prestashop.delivery.carrier',
-            record['id_carrier']
+        binder = self.binder_for('prestashop.delivery.carrier')
+        return {'carrier_id': binder.to_openerp(
+            record['id_carrier'], unwrap=True
         )}
 
     @mapping
@@ -535,6 +526,12 @@ class SaleOrderMapper(PrestashopImportMapper):
         tax = float(record['total_paid_tax_incl'])\
                 - float(record['total_paid_tax_excl'])
         return {'total_amount_tax': tax}
+
+    @mapping
+    def user_id(self, record):
+        """ Do not assign to a Salesperson otherwise sales orders are hidden
+        for the salespersons (access rules)"""
+        return {'user_id': False}
 
     def _add_shipping_line(self, map_record, values):
         record = map_record.source
@@ -580,10 +577,10 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     def none_product(self, record):
         product_id = True
         if 'product_attribute_id' not in record:
-            template_id = self.get_openerp_id(
-                'prestashop.product.template',
-                record['product_id'])
-            product_id = self.session.search('product.product', [
+            binder = self.binder_for('prestashop.product.template')
+            template_id = binder.to_openerp(
+                record['product_id'], unwrap=True)
+            product_id = self.session.env['product.product'].search([
                 ('product_tmpl_id', '=', template_id),
                 ('company_id', '=', self.backend_record.company_id.id)])
         return not product_id
@@ -613,9 +610,9 @@ class SaleOrderLineMapper(PrestashopImportMapper):
                 unwrap=True
             )
         else:
-            template_id = self.get_openerp_id(
-                'prestashop.product.template',
-                record['product_id'])
+            template_binder = self.binder_for('prestashop.product.template')
+            template_id = template_binder.to_openerp(
+                record['product_id'], unwrap=True)
             product = self.session.env['product.product'].search([
                 ('product_tmpl_id', '=', template_id),
                 ('company_id', '=', self.backend_record.company_id.id)])
@@ -631,7 +628,7 @@ class SaleOrderLineMapper(PrestashopImportMapper):
         if self.backend_record.taxes_included and not tax['price_include'] and tax['related_inc_tax_id']:
             return tax['related_inc_tax_id'][0]
         return openerp_id
-        
+
     def tax_id(self, record):
         taxes = record.get('associations', {}).get('taxes', {}).get('tax', [])
         if not isinstance(taxes, list):
@@ -653,7 +650,7 @@ class SaleOrderLineMapper(PrestashopImportMapper):
 @prestashop
 class SaleOrderLineDiscount(PrestashopImportMapper):
     _model_name = 'prestashop.sale.order.line.discount'
-    
+
     direct = []
 
     @mapping
@@ -753,6 +750,13 @@ class SupplierInfoMapper(PrestashopImportMapper):
         return {'min_qty': 0.0, 'delay': 1}
 
 class PrestashopExportMapper(ExportMapper):
+
+
+    def get_changed_by_fields(self):
+        """
+        You can override this method to add a custom way to consider fields.
+        """
+        return set(self._changed_by_fields)
 
     def _map_direct(self, record, from_attr, to_attr):
         res = super(PrestashopExportMapper, self)._map_direct(record,

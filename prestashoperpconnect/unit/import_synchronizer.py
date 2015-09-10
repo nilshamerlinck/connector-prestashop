@@ -434,9 +434,10 @@ class SaleImportRule(ConnectorUnit):
         """
         session = self.session
         payment_method = record['payment']
-        method_ids = session.search('payment.method',
-                                    [('name', '=', payment_method)])
-        if not method_ids:
+        methods = session.env['payment.method'].search(
+            [('name', '=', payment_method)]
+        )
+        if not methods:
             raise FailedJobError(
                 "The configuration is missing for the Payment Method '%s'.\n\n"
                 "Resolution:\n"
@@ -446,8 +447,7 @@ class SaleImportRule(ConnectorUnit):
                 "-Eventually  link the Payment Method to an existing Workflow "
                 "Process or create a new one." % (payment_method,
                                                   payment_method))
-        method = session.browse('payment.method', method_ids[0])
-
+        method = methods[0]
         self._rule_global(record, method)
         self._rules[method.import_rule](self, record, method)
 

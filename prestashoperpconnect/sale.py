@@ -57,10 +57,9 @@ class SaleOrderAdapter(GenericAdapter):
     def search(self, filters=None):
         result = super(SaleOrderAdapter, self).search(filters=filters)
 
-        shop_ids = self.session.search('prestashop.shop', [
+        shops = self.session.env['prestashop.shop'].search([
             ('backend_id', '=', self.backend_record.id)
         ])
-        shops = self.session.browse('prestashop.shop', shop_ids)
         for shop in shops:
             if not shop.default_url:
                 continue
@@ -76,14 +75,14 @@ class OrderCarriers(GenericAdapter):
     _model_name = '__not_exit_prestashop.order_carrier'
     _prestashop_model = 'order_carriers'
     _export_node_name = 'order_carrier'
- 
+
 
 @prestashop
 class PaymentMethodAdapter(GenericAdapter):
     _model_name = 'payment.method'
     _prestashop_model = 'orders'
     _export_node_name = 'order'
-    
+
     def search(self, filters=None):
         api = self.connect()
         res = api.get(self._prestashop_model, options=filters)
