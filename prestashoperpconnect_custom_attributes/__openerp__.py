@@ -31,6 +31,7 @@
     "category": "Connector",
     'data': [
         'product_attribute_view.xml',
+        'security/ir.model.access.csv',
     ],
     "installable": True,
 }
