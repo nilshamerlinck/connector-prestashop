@@ -26,6 +26,23 @@ class product_product(orm.Model):
         ),
     }
 
+    def copy(self, cr, uid, id, default=None, context=None):
+        if default is None:
+            default = {}
+        default['prestashop_combinations_bind_ids'] = []
+        return super(product_product, self).copy(
+            cr, uid, id, default=default, context=context
+        )
+
+    def update_prestashop_quantities(self, cr, uid, ids, context=None):
+        for product in self.browse(cr, uid, ids, context=context):
+            for prestashop_product in product.prestashop_bind_ids:
+                prestashop_product.recompute_prestashop_qty()
+            prestashop_combinations = product.prestashop_combinations_bind_ids
+            for prestashop_combination in prestashop_combinations:
+                prestashop_combination.recompute_prestashop_qty()
+        return True
+
 
 class prestashop_product_combination(orm.Model):
     _name = 'prestashop.product.combination'

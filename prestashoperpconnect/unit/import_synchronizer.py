@@ -261,7 +261,7 @@ class DelayedBatchImporter(BatchImporter):
         'prestashop.res.partner',
         'prestashop.address',
         'prestashop.product.category',
-        'prestashop.product.product',
+#        'prestashop.product.product',
         'prestashop.product.template',
         'prestashop.sale.order',
         'prestashop.refund',
