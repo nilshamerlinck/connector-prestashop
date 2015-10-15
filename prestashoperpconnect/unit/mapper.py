@@ -426,7 +426,7 @@ class SaleOrderMapper(PrestashopImportMapper):
                 ImportMapper, 'prestashop.sale.order.line.discount')
             map_record = mapper.map_record(discount, parent=record)
             map_values = map_record.values()
-            discount_mappers.append(map_values)
+            discount_mappers.append((0, 0, map_values))
         return discount_mappers
 
     def _sale_order_exists(self, name):
