@@ -209,10 +209,10 @@ class PartnerImportMapper(PrestashopImportMapper):
                 'base',
                 'lang_en')[1]
         model = self.session.env['prestashop.res.lang']
-        erp_lang = model.read(
-            erp_lang_id,
+        erp_lang = model.browse(
+            erp_lang_id
         )
-        return {'lang': erp_lang['code']}
+        return {'lang': erp_lang.code}
 
     @mapping
     def customer(self, record):
