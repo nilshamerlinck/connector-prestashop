@@ -148,9 +148,9 @@ class prestashop_product_template(orm.Model):
             'Tags',
             translate=True
         ),
-        # 'available_for_order': fields.boolean(
-        #     'Available For Order'
-        # ),
+         'available_for_order': fields.boolean(
+             'Available For Order'
+         ),
         'show_price': fields.boolean(
             'Show Price'
         ),
