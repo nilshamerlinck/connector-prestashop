@@ -393,9 +393,14 @@ class ProductImageExporter(PrestashopExporter):
 class ProductImageExportMapper(PrestashopExportMapper):
     _model_name = 'prestashop.product.image'
 
-    direct = [
-        ('file_db_store', 'file_db_store')
-        ]
+#    direct = [
+#        ('image', 'image')
+#        ]
+
+    @changed_by('image')
+    @mapping
+    def image(self, record):
+        return {'image': record['image']}
 
     @changed_by('name', 'extension2')
     @mapping
