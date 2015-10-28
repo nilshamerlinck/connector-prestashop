@@ -23,7 +23,7 @@ Check your taxes and fiscal positions configuration and correct them if necessar
             <field name="description">The tax amount computed in OpenERP doesn't match with the tax amount in Prestashop.
 
 Cause:
-The taxes are probably different between OpenERP and Magento. A fiscal position could have changed the final price.
+The taxes are probably different between OpenERP and Prestashop. A fiscal position could have changed the final price.
 
 Resolution:
 Check your taxes and fiscal positions configuration and correct them if necessary.</field>
