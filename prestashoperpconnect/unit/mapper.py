@@ -629,6 +629,7 @@ class SaleOrderLineMapper(PrestashopImportMapper):
             return tax['related_inc_tax_id'][0]
         return openerp_id
 
+    @mapping
     def tax_id(self, record):
         taxes = record.get('associations', {}).get('taxes', {}).get('tax', [])
         if not isinstance(taxes, list):
