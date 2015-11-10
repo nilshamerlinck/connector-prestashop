@@ -38,3 +38,5 @@ access_prestashop_res_partner_category_user,prestashop_res_partner_category user
 access_prestashop_sale_order_user,prestashop_sale_order user,model_prestashop_sale_order,base.group_sale_salesman,1,0,0,0
 access_sale_order_state_list_user,sale_order_state_list user,model_sale_order_state_list,base.group_sale_salesman,1,0,0,0
 access_prestashop_sale_order_state_user,prestashop_sale_order_state user,model_prestashop_sale_order_state,base.group_sale_salesman,1,0,0,0
+access_prestashop_account_tax_user,User access on prestashop.account.tax,model_prestashop_account_tax,base.group_sale_salesman,1,0,0,0
+access_prestashop_account_tax_group_user,User access on prestashop.account.tax.group,model_prestashop_account_tax_group,base.group_sale_salesman,1,0,0,0
