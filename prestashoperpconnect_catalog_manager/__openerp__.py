@@ -27,7 +27,8 @@
     "version": "0.2",
     "license": "AGPL-3",
     "depends": [
-        "prestashoperpconnect"
+        "prestashoperpconnect",
+        "product_links",
     ],
     "author": "PrestashopERPconnect Core Editors",
     "description": """This module is an extention for PrestashopERPconnect.

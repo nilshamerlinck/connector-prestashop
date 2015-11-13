@@ -337,8 +337,20 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
                 ext_categ_ids.append({'id': ext_id})
         return ext_categ_ids
 
+    def _get_product_links(self, record):
+        links = []
+        binder = self.binder_for('prestashop.product.template')
+        for link in record.product_link_ids:
+            ext_id = binder.to_backend(link.linked_product_id.id, wrap=True)
+            if ext_id:
+                links.append({'id': ext_id})
+        return links
+
+
     #TODO changed by attribute_line_ids.value_ids
-    @changed_by('attribute_line_ids', 'categ_ids', 'categ_id')
+    @changed_by(
+        'attribute_line_ids', 'categ_ids', 'categ_id', 'product_link_ids'
+    )
     @mapping
     def associations(self, record):
         return {
@@ -347,6 +359,8 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
                     'category_id': self._get_product_category(record)},
                 'product_features': {
                     'product_feature': self._get_template_feature(record)},
+                'accessories': {
+                    'accessory': self._get_product_links(record)},
             }
         }
 

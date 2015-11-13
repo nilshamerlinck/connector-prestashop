@@ -40,3 +40,4 @@ access_sale_order_state_list_user,sale_order_state_list user,model_sale_order_st
 access_prestashop_sale_order_state_user,prestashop_sale_order_state user,model_prestashop_sale_order_state,base.group_sale_salesman,1,0,0,0
 access_prestashop_account_tax_user,User access on prestashop.account.tax,model_prestashop_account_tax,base.group_sale_salesman,1,0,0,0
 access_prestashop_account_tax_group_user,User access on prestashop.account.tax.group,model_prestashop_account_tax_group,base.group_sale_salesman,1,0,0,0
+access_prestashop_res_lang_user,User access on prestashop.res.lang,model_prestashop_res_lang,base.group_user,1,0,0,0
