@@ -50,11 +50,17 @@ class SaleOrderImportWizard(models.TransientModel):
         else:
             raise exceptions.Warning(
                 _('This sale order does not exist in the prestashop backend'))
-
+        self.env.cr.commit()
         binder = adapter.binder_for('prestashop.sale.order')
-        new_order_id = binder.to_openerp(presta_id[0], unwrap=True)
-        model, view_id = self.env['ir.model.data'].get_object_reference(
-            'sale', 'view_order_form')
+        new_order = binder.to_openerp(presta_id[0], unwrap=True, browse=True)
+        validate_order = new_order.workflow_process_id.validate_order
+        if new_order.payment_ids and validate_order and new_order.state == 'draft':
+            try:
+                new_order.action_button_confirm()
+            except:
+                self.env.cr.rollback()
+        view_id = self.env['ir.model.data'].xmlid_to_res_id(
+            'sale.view_order_form')
         return {
             'name': 'Sale order',
             'view_type': 'form',
@@ -62,6 +68,6 @@ class SaleOrderImportWizard(models.TransientModel):
             'view_id': view_id,
             'domain': [],
             'res_model': 'sale.order',
-            'res_id': new_order_id,
+            'res_id': new_order.id,
             'type': 'ir.actions.act_window',
         }
