@@ -46,6 +46,7 @@ from ..unit.import_synchronizer import (
 )
 from ..unit.direct_binder import DirectBinder
 from ..connector import get_environment
+from openerp.addons.base.res.res_partner import _tz_get
 
 from openerp.addons.prestashoperpconnect.product import import_inventory
 
@@ -102,6 +103,8 @@ class prestashop_backend(orm.Model):
         'shipping_product_id': fields.many2one('product.product',
                                                'Shipping Product', select=1,
                                                required=False),
+        'tz': fields.selection(_tz_get,  'Timezone', size=64,
+            help="The timezone of the backend. Used to synchronize the sale order date."),
     }
 
     _defaults = {

@@ -22,8 +22,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+import pytz, datetime
 from decimal import Decimal
-
 from openerp.tools.translate import _
 from openerp.addons.connector.unit.mapper import (
     mapping,
@@ -39,6 +39,7 @@ from openerp.addons.connector_ecommerce.unit.sale_order_onchange import (
 from openerp.addons.connector.connector import Binder
 from openerp.addons.connector.unit.mapper import only_create
 from openerp.addons.connector_ecommerce.sale import ShippingLineBuilder
+from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT as DATETIME_FORMAT
 
 
 class PrestashopImportMapper(ImportMapper):
@@ -368,7 +369,6 @@ class SaleOrderMapper(PrestashopImportMapper):
     _model_name = 'prestashop.sale.order'
 
     direct = [
-        ('date_add', 'date_order'),
         ('invoice_number','prestashop_invoice_number'),
         ('delivery_number','prestashop_delivery_number'),
         ('total_paid', 'total_amount'),
@@ -557,6 +557,14 @@ class SaleOrderMapper(PrestashopImportMapper):
         values = self._add_shipping_line(map_record, values)
         onchange = self.unit_for(SaleOrderOnChange)
         return onchange.play(values, values['prestashop_order_line_ids'])
+
+    @mapping
+    def date_order(self, record):
+        local = pytz.timezone(self.backend_record.tz)
+        naive = datetime.datetime.strptime(record['date_add'], DATETIME_FORMAT)
+        local_dt = local.localize(naive, is_dst=None)
+        date_order = local_dt.astimezone(pytz.utc).strftime(DATETIME_FORMAT)
+        return {'date_order': date_order}
 
 
 @prestashop
