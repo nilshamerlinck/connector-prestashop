@@ -536,11 +536,21 @@ class SaleOrderImport(PrestashopImportSynchronizer):
     def _import_dependencies(self):
         record = self.prestashop_record
         self._check_dependency(record['id_customer'], 'prestashop.res.partner')
-        self._check_dependency(record['id_address_invoice'],
-                    	       'prestashop.address')
-        self._check_dependency(record['id_address_delivery'],
-                               'prestashop.address')
-
+        # Re-import addresses anyway because customer updates addresses usually
+        # When making a new order
+        import_record(
+            self.session,
+            'prestashop.address',
+            self.backend_record.id,
+            record['id_address_delivery']
+            )
+        if record['id_address_delivery'] != record['id_address_invoice']:
+            import_record(
+                self.session,
+                'prestashop.address',
+                self.backend_record.id,
+                record['id_address_invoice']
+                )
         if not('so_refund_no_dep' in self.session.context 
                and self.session.context['so_refund_no_dep']):
             self._check_refunds(record['id_customer'], record['id'])
@@ -1072,6 +1082,7 @@ def import_customers_since(session, backend_id, since_date=None):
     now_fmt = datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)
     import_batch(session, 'prestashop.res.partner.category', backend_id, filters)
     import_batch(session, 'prestashop.res.partner', backend_id, filters, priority=15)
+    import_batch(session, 'prestashop.address', backend_id, filters, priority=15)
 
     session.pool.get('prestashop.backend').write(
         session.cr,
