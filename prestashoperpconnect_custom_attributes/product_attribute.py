@@ -195,6 +195,18 @@ class PrestashopAttributeOptionBinder(PrestashopModelBinder):
 class ProductAttributeExporter(TranslationPrestashopExporter):
     _model_name = 'prestashop.product.attribute'
 
+    def _after_export(self):
+        if self.erp_record.option_ids:
+            option_binder = self.binder_for('prestashop.attribute.option')
+            for option in self.erp_record.option_ids:
+                ext_option_id = option_binder.to_backend(option.id, wrap=True)
+                if not ext_option_id:
+                    self.session.env['prestashop.attribute.option'].create({
+                        'openerp_id': option.id,
+                        'backend_id': self.backend_record.id,
+                        'prestashop_product_attribute_id': self.erp_record.id
+                    })
+
 
 @prestashop
 class AttributeOptionExporter(TranslationPrestashopExporter):
@@ -233,7 +245,7 @@ class ProductAttributeExportMapper(TranslationPrestashopExportMapper):
 class AttributeOptionExportMapper(TranslationPrestashopExportMapper):
     _model_name = 'prestashop.attribute.option'
 
-    @changed_by('attribute_id')
+    @changed_by('attribute_id', 'prestashop_product_attribute_id')
     @mapping
     def prestashop_product_attribute_id(self, record):
         return {
