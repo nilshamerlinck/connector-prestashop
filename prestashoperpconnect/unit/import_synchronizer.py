@@ -616,14 +616,31 @@ class TranslatableRecordImporter(PrestashopImporter):
 
         # special check on data before import
         self._validate_data(record)
-        self.session.change_context({'lang': lang_code})
         if binding:
-            self._update(binding, record)
+            self._update(binding, record, lang_code)
         else:
-            binding = self._create(record)
+            binding = self._create(record, lang_code)
 
         return binding
 
+    def _create(self, data, lang_code):
+        """ Create the ERP record """
+        model = self.model.with_context(
+            connector_no_export=True,
+            lang=lang_code)
+        binding = model.create(data)
+        _logger.debug('%s %d created from prestashop %s',
+                      self.model._name, binding, self.prestashop_id)
+        return binding
+
+    def _update(self, binding, data, lang_code):
+        """ Update an ERP record """
+        binding.with_context(
+            connector_no_export=True,
+            lang=lang_code).write(data)
+        _logger.debug('%s %d updated from prestashop %s',
+                      self.model._name, binding, self.prestashop_id)
+        return
 
 @prestashop
 class PartnerCategoryRecordImporter(TranslatableRecordImporter):
