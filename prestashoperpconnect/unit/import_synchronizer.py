@@ -497,6 +497,26 @@ class SaleOrderImporter(PrestashopImporter):
             except PrestaShopWebServiceError:
                 pass
 
+    def _after_import(self, binding):
+        self._create_payment(binding)
+
+    def _create_payment(self, binding):
+        if not binding.payment_method_id.journal_id:
+            return
+        record = self.prestashop_record
+        payment_adapter = self.get_connector_unit_for_model(
+            GenericAdapter,
+            '__not_exist_prestashop.payment'
+        )
+        payment_ids = payment_adapter.search({
+            'filter[order_reference]': record['reference']
+        })
+        amount = 0
+        for payment_id in payment_ids:
+           amount += float(payment_adapter.read(payment_id)['amount'])
+        if amount:
+            binding.openerp_id.automatic_payment(amount)
+
     def _check_refunds(self, id_customer, id_order):
         backend_adapter = self.unit_for(GenericAdapter, 'prestashop.refund')
         filters = {'filter[id_customer]': id_customer}
