@@ -271,7 +271,6 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
     _model_name = 'prestashop.product.template'
 
     direct = [
-        ('list_price', 'price'),
         ('available_for_order', 'available_for_order'),
         ('show_price', 'show_price'),
         ('online_only', 'online_only'),
@@ -381,7 +380,6 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
-        ('name', 'name'),
         ('link_rewrite', 'link_rewrite'),
         ('meta_title', 'meta_title'),
         ('meta_description', 'meta_description'),
@@ -396,6 +394,18 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         translated_fields = self.convert_languages(
             trans.get_record_by_lang(record.id), translatable_fields)
         return translated_fields
+
+    @changed_by('categ_id')                                                   
+    @mapping                                                                    
+    def categ_id(self, record):                                               
+        binder = self.binder_for('prestashop.product.category')                 
+        ext_categ_id = binder.to_backend(record.categ_id.id, wrap=True)
+        return {'id_category_default': ext_categ_id}                                   
+        
+    @changed_by('list_price')
+    @mapping
+    def list_price(self, record):
+        return {'price': record['list_price']}
 
 
 @prestashop
