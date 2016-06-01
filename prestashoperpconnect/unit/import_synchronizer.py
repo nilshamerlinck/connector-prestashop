@@ -954,6 +954,7 @@ class ProductPricelistImporter(TranslatableRecordImporter):
 
 
 @job
+@job(default_channel='root.prestashop_import')
 def import_batch(session, model_name, backend_id, filters=None, **kwargs):
     """ Prepare a batch import of records from Prestashop """
     env = get_environment(session, model_name, backend_id)
@@ -962,6 +963,7 @@ def import_batch(session, model_name, backend_id, filters=None, **kwargs):
 
 
 @job
+@job(default_channel='root.prestashop_import')
 def import_record(session, model_name, backend_id, prestashop_id):
     """ Import a record from Prestashop """
     env = get_environment(session, model_name, backend_id)
@@ -979,6 +981,7 @@ def import_product_image(session, model_name, backend_id, product_tmpl_id,
 
 
 @job
+@job(default_channel='root.prestashop_import')
 def import_customers_since(session, backend_id, since_date=None):
     """ Prepare the import of partners modified on Prestashop """
 
@@ -993,6 +996,9 @@ def import_customers_since(session, backend_id, since_date=None):
     import_batch(
         session, 'prestashop.res.partner', backend_id, filters, priority=15
     )
+    import_batch(                                                      
+        session, 'prestashop.address', backend_id, filters, priority=30
+    )                                                           
 
     session.pool.get('prestashop.backend').write(
         session.cr,
@@ -1004,6 +1010,7 @@ def import_customers_since(session, backend_id, since_date=None):
 
 
 @job
+@job(default_channel='root.prestashop_import')
 def import_orders_since(session, backend_id, since_date=None):
     """ Prepare the import of orders modified on Prestashop """
 

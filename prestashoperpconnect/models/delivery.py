@@ -60,6 +60,4 @@ class DeliveryCarrier(models.Model):
         'prestashop.delivery.carrier', 'openerp_id',
         string='PrestaShop Bindings')
     company_id = fields.Many2one(
-        'res.company', string='Company', select=1, required=True,
-        default=lambda self: self.env['res.company']._company_default_get(
-            'delivery.carrier'))
+        'res.company', string='Company', select=1, required=True)

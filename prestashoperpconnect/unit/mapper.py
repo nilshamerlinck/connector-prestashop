@@ -339,10 +339,10 @@ class AddressImportMapper(PrestashopImportMapper):
             if name:
                 name += " "
             name += record['lastname']
-        if record['alias']:
-            if name:
-                name += " "
-            name += '('+record['alias']+')'
+#        if record['alias']:
+#            if name:
+#                name += " "
+#            name += '('+record['alias']+')'
         return {'name': name}
 
     @mapping
@@ -809,6 +809,7 @@ class TranslationPrestashopExportMapper(PrestashopExportMapper):
             for language_id, record in records_by_language.items():
                 value['language'].append({
                     'attrs': {'id': str(language_id)},
+
                     'value': record[from_attr]
                 })
             res[to_attr] = value
