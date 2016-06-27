@@ -84,7 +84,7 @@ def prestashop_product_image_create(session, model_name, record_id, vals):
     prestashoperpconnect.delay_export(session, model_name, record_id, {})
 
 
-@on_record_create(model_names='product.image')
+@on_record_create(model_names='base_multi_image.image')
 def product_image_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
