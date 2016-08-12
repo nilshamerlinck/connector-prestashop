@@ -346,7 +346,11 @@ class ProductInventoryExporter(Exporter):
         template = self.session.env[self.model._name].browse(binding_id)
         adapter = self.unit_for(GenericAdapter, '_import_stock_available')
         filter = self.get_filter(template)
-        adapter.export_quantity(filter, int(template.quantity))
+        quantity_vals = {
+            'quantity': int(template.quantity),
+            'out_of_stock': int(template.out_of_stock),
+        }
+        adapter.export_quantity(filter, quantity_vals)
 
 
 @prestashop
@@ -468,7 +472,10 @@ class ProductInventoryAdapter(GenericAdapter):
             res = api.get(self._prestashop_model, stock_id)
             first_key = res.keys()[0]
             stock = res[first_key]
-            stock['quantity'] = int(quantity)
+            stock.update({
+                'out_of_stock': int(quantity['out_of_stock']),
+                'quantity': int(quantity['quantity'])
+                })
             try:
                 api.edit(self._prestashop_model, stock['id'], {
                     self._export_node_name: stock

@@ -185,6 +185,12 @@ class prestashop_product_template(orm.Model):
             string='Combinations'
         ),
         'reference': fields.char('Original reference'),
+        'out_of_stock': fields.selection(
+            [('0', 'Refuse order'),
+             ('1', 'Accept order'),
+             ('2', 'Default prestashop')],
+            string='If stock shortage'
+        ),
     }
 
     _sql_constraints = [
