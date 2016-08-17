@@ -44,6 +44,7 @@ from .connector import get_environment
 from .unit.mapper import PrestashopImportMapper
 from backend import prestashop
 
+from openerp.tools import config
 from prestapyt import PrestaShopWebServiceDict
 
 try:
@@ -466,7 +467,10 @@ class ProductInventoryAdapter(GenericAdapter):
             )
 
     def export_quantity_url(self, url, key, filters, quantity):
-        api = PrestaShopWebServiceDict(url, key)
+        debug = False
+        if config['log_level'] == 'debug':
+            debug = True
+        api = PrestaShopWebServiceDict(url, key, debug=debug)
         response = api.search(self._prestashop_model, filters)
         for stock_id in response:
             res = api.get(self._prestashop_model, stock_id)
@@ -474,7 +478,8 @@ class ProductInventoryAdapter(GenericAdapter):
             stock = res[first_key]
             stock.update({
                 'out_of_stock': int(quantity['out_of_stock']),
-                'quantity': int(quantity['quantity'])
+                'quantity': int(quantity['quantity']),
+                'id_product_attribute': 0
                 })
             try:
                 api.edit(self._prestashop_model, stock['id'], {

@@ -216,7 +216,8 @@ class prestashop_product_template(orm.Model):
             context = {}
         backend = product.backend_id
         stock = backend.warehouse_id.lot_stock_id
-        stock_field = 'qty_available'
+        # Custom oskab export immediately_usable_qty
+        stock_field = 'immediately_usable_qty'
         location_ctx = context.copy()
         location_ctx['location'] = stock.id
         product_stk = self.read(
