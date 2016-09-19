@@ -42,6 +42,20 @@ from openerp.addons.connector_ecommerce.sale import ShippingLineBuilder
 from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT as DATETIME_FORMAT
 
 
+
+def presta_boolean(field):
+    """
+    Mapping for prestashop boolean fields
+    """
+    def modifier(self, record, to_attr):
+        if record[field] == '0':
+            return False
+        elif record[field] == '1':
+            return True
+        return record[field]
+    return modifier
+
+
 class PrestashopImportMapper(ImportMapper):
 
     #get_openerp_id is deprecated use the binder intead
