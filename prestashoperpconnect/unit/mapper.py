@@ -159,7 +159,6 @@ class PartnerImportMapper(PrestashopImportMapper):
         ('date_add', 'date_add'),
         ('date_upd', 'date_upd'),
         ('email', 'email'),
-        ('newsletter', 'newsletter'),
         ('company', 'company'),
         ('active', 'active'),
         ('note', 'comment'),
