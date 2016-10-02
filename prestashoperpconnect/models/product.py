@@ -222,8 +222,20 @@ class prestashop_product_template(orm.Model):
         location_ctx['location'] = stock.id
         product_stk = self.read(
             cr, uid, product.id, [stock_field], context=location_ctx
-        )
-        return product_stk[stock_field]
+        )[stock_field]
+        order_qty = 0
+        for variant in product.product_variant_ids:
+            cr.execute("""
+            SELECT sum(product_uom_qty)
+                FROM sale_order_line AS line
+                JOIN sale_order AS sale ON sale.id = line.order_id
+                WHERE sale.state = 'draft' AND line.product_id = %s
+            """, (variant.id, ))
+            res = cr.fetchall()[0][0]
+            if res:
+                order_qty += res
+        prestashop_qty = product_stk - order_qty
+        return prestashop_qty
 
 #
 #class product_product(orm.Model):
