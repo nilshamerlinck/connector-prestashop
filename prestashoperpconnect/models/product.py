@@ -33,6 +33,11 @@ class product_category(orm.Model):
             'openerp_id',
             string="PrestaShop Bindings"
         ),
+        'prestashop_image_bind_ids': fields.one2many(
+            'prestashop.categ.image',
+            'openerp_id',
+            string="PrestaShop Image Bindings"
+        ),
     }
 
 
@@ -93,6 +98,21 @@ class prestashop_product_image(orm.Model):
         'openerp_id': fields.many2one(
             'base_multi_image.image',
             string='Product image',
+            required=True,
+            ondelete='cascade'
+        )
+    }
+
+
+class prestashop_categ_image(orm.Model):
+    _name = 'prestashop.categ.image'
+    _inherit = 'prestashop.binding'
+    _inherits = {'product.category': 'openerp_id'}
+
+    _columns = {
+        'openerp_id': fields.many2one(
+            'product.category',
+            string='Category',
             required=True,
             ondelete='cascade'
         )

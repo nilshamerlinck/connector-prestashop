@@ -42,3 +42,7 @@ access_prestashop_sale_order_state_user,prestashop_sale_order_state user,model_p
 access_prestashop_account_tax_user,User access on prestashop.account.tax,model_prestashop_account_tax,base.group_sale_salesman,1,0,0,0
 access_prestashop_account_tax_group_user,User access on prestashop.account.tax.group,model_prestashop_account_tax_group,base.group_sale_salesman,1,0,0,0
 access_prestashop_res_lang_user,User access on prestashop.res.lang,model_prestashop_res_lang,base.group_user,1,0,0,0
+access_prestashop_product_category_user,User access on prestashop.product.category,model_prestashop_product_category,base.group_sale_salesman,1,0,0,0
+access_prestashop_product_image_user,User access on prestashop.product.image,model_prestashop_product_image,base.group_sale_salesman,1,0,0,0
+access_prestashop_product_category_image_full,Full access on prestashop.categ.image,model_prestashop_categ_image,connector.group_connector_manager,1,1,1,1
+access_prestashop_product_category_image_user,User access on prestashop.categ.image,model_prestashop_categ_image,base.group_sale_salesman,1,0,0,0

@@ -262,10 +262,59 @@ class ProductImageAdapter(PrestaShopCRUDAdapter):
     def write(self, id, attributes=None):
         api = self.connect()
         image_binary = attributes['image']
-        img_filename = attributes['file_name']
-        image_url = 'images/%s/%s/%s' % (
-            self._prestashop_image_model, str(attributes['product_id']), str(id))
-        return api.edit(
+        img_filename = attributes['filename']
+        #In PS 1.5 we have to delete the image and send a new one
+        image_url = 'images/%s/%s' % (self._prestashop_image_model, str(attributes['product_id']))
+        api.delete(image_url, str(id))
+        return api.add(
+            image_url, content=image_binary, img_filename=img_filename)
+
+    def delete(self, image_id, product_id):
+        api = self.connect()
+        image_url = 'images/%s/%s' % (self._prestashop_image_model, str(product_id))
+        return api.delete(image_url, image_id)
+
+
+@prestashop
+class CategImageAdapter(PrestaShopCRUDAdapter):
+    _model_name = 'prestashop.categ.image'
+    _prestashop_image_model = 'categories'
+
+    def connect(self):
+        debug = False
+        if config['log_level'] == 'debug':
+            debug = True
+        return PrestaShopWebServiceImage(self.prestashop.api_url,
+                                         self.prestashop.webservice_key,
+                                         debug=debug)
+
+    def read(self, category_id, image_id, options=None):
+        api = self.connect()
+        return api.get_image(
+            self._prestashop_image_model,
+            category_id,
+            image_id,
+            options=options
+        )
+
+    def create(self, attributes=None):
+        api = self.connect()
+        image_binary = attributes['image']
+        img_filename = attributes['name']
+        image_url = 'images/%s/%s' % (
+            self._prestashop_image_model, str(attributes['categ_id']))
+        return api.add(
+            image_url, content=image_binary, img_filename=img_filename)
+
+    def write(self, id, attributes=None):
+        api = self.connect()
+        image_binary = attributes['image']
+        img_filename = attributes['name']
+        delete_url = 'images/%s' % (self._prestashop_image_model)
+        api.delete(delete_url,  str(attributes['categ_id']))
+        image_url = 'images/%s/%s' % (
+            self._prestashop_image_model, str(attributes['categ_id']))
+        return api.add(
             image_url, content=image_binary, img_filename=img_filename)
 
 
