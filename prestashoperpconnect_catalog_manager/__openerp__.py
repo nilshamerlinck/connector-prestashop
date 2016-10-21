@@ -29,6 +29,7 @@
     "depends": [
         "prestashoperpconnect",
         "product_links",
+        "product_categ_image",
     ],
     "author": "PrestashopERPconnect Core Editors",
     "description": """This module is an extention for PrestashopERPconnect.
