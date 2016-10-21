@@ -184,7 +184,7 @@ class prestashop_product_template(orm.Model):
             'Tags',
             translate=True
         ),
-         'available_for_order': fields.boolean(
+        'available_for_order': fields.boolean(
              'Available For Order'
          ),
         'show_price': fields.boolean(
@@ -231,8 +231,6 @@ class ProductTemplateExport(TranslationPrestashopExporter):
             'prestashop.product.combination.option')
         option_binder = self.binder_for(
             'prestashop.product.combination.option.value')
-        combination_binder = self.binder_for(
-            'prestashop.product.combination')
         attribute_obj = self.session.pool[
             'prestashop.product.combination.option']
         for line in self.erp_record.attribute_line_ids:
@@ -270,7 +268,9 @@ class ProductTemplateExport(TranslationPrestashopExporter):
                     )
             # comprobar si tiene variantes
 
-#        #Comprobamos si las combinaciones estan creadas
+    def export_variants(self):
+        combination_binder = self.binder_for(
+            'prestashop.product.combination')
         if self.erp_record.product_variant_ids:
             for product in self.erp_record.product_variant_ids:
                 if not product.attribute_value_ids:
@@ -286,20 +286,12 @@ class ProductTemplateExport(TranslationPrestashopExporter):
                             'backend_id': self.backend_record.id,
                             'openerp_id': product.id,
                             'main_template_id': self.binding_id}, context=ctx)
-                    export_record(self.session,
-                                  'prestashop.product.combination',
-                                  combination_ext_id)
+                    export_record.delay(self.session,
+                                        'prestashop.product.combination',
+                                        combination_ext_id)
 
     def _after_export(self):
-        if self.erp_record.product_variant_ids:
-            combination_binder = self.binder_for(
-            'prestashop.product.combination')
-            for product in self.erp_record.product_variant_ids:
-                combination_ext_id = combination_binder.to_backend(
-                    product.id, wrap=True)
-                if combination_ext_id:
-                    product_product_write(self.session, 'product.product',
-                                          product.id, {})
+        self.export_variants()
 
 
 @prestashop
