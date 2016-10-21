@@ -1,21 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <openerp>
     <data>
-        <!--This is a product inherited form that will be dynamically populated-->
 
-
+        <record id="product_attribute_tree_view" model="ir.ui.view">
+            <field name="name">product.attribute.tree</field>
+            <field name="model">product.attribute</field>
+            <field name="inherit_id" ref="product.attribute_tree_view"/>
+            <field name="arch" type="xml">
+                <tree string="Variant Values" position="attributes">
+                    <attribute name="editable"/>
+                </tree>
+            </field>
+        </record>
 
         <record id="product_attribute_form_view" model="ir.ui.view">
             <field name="name">product.attribute.form</field>
             <field name="model">product.attribute</field>
             <field name="arch" type="xml">
-            <form string="prestashop fields">
-                <group string="Prestashop Bindings" colspan="4">
-                     <field name="name"/>
-                    <field name="prestashop_bind_ids" nolabel="1"/>
-                </group>
-            </form>
+                <form string="prestashop fields">
+                    <field name="name"/>
+                    <group string="Prestashop Bindings" colspan="4">
+                        <field name="prestashop_bind_ids" nolabel="1"/>
+                    </group>
+                </form>
             </field>
+        </record>
+
+        <record id="product.attribute_action" model="ir.actions.act_window">
+            <field name="view_mode">tree,form</field>
         </record>
 
         <record id="product_attribute_connector_presta_form_view"
