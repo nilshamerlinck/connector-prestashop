@@ -36,12 +36,14 @@ from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
 
 from openerp.addons.prestashoperpconnect.unit.mapper import (
     TranslationPrestashopExportMapper,
+    PrestashopExportMapper
 )
 
 import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 from openerp.addons.prestashoperpconnect.connector import get_environment
 from openerp.addons.prestashoperpconnect.backend import prestashop
 from .wizard.export_multiple_products import get_slug
+from openerp.addons.connector.queue.job import job
 
 
 @on_record_create(model_names='prestashop.product.category')
@@ -58,10 +60,13 @@ def categ_export(session, model_name, record_id, vals):
         return
     prestashoperpconnect.delay_export_all_bindings(
         session, model_name, record_id, vals)
+    if 'image' in vals:
+        export_categ_image(session, model_name, record_id, vals)
+
 
 
 @prestashop
-class ProductCategoryExporter(PrestashopExporter):
+class ProductCategoryExporter(TranslationPrestashopExporter):
     _model_name = 'prestashop.product.category'
 
     def _export_dependencies(self):
@@ -101,7 +106,54 @@ class ProductCategoryExportMapper(TranslationPrestashopExportMapper):
         ('meta_keywords', 'meta_keywords'),
         ('description', 'description'),
         ]
-        trans = TranslationPrestashopExporter(self.environment)
+        trans = self.unit_for( ProductCategoryExporter)
         translated_fields = self.convert_languages(
             trans.get_record_by_lang(record.id), translatable_fields)
         return translated_fields
+
+
+@prestashop
+class CategImageExporter(PrestashopExporter):
+    _model_name = 'prestashop.categ.image'
+
+    def _create(self, data):
+        """ Create the Prestashop record """
+        if self.backend_adapter.create(data):
+            return 1
+
+    def _update(self, data):
+        return 1
+
+
+@prestashop
+class CategImageExportMapper(PrestashopExportMapper):
+    _model_name = 'prestashop.categ.image'
+
+    @changed_by('image')
+    @mapping
+    def image(self, record):
+        name = record.name.lower() + '.jpg'
+        return {'image': record['image'], 'name': name}
+
+    @changed_by('openerp_id')
+    @mapping
+    def openerp_id(self, record):
+        binder = self.binder_for('prestashop.product.category')
+        ext_categ_id = binder.to_backend(record.openerp_id.id, wrap=True)
+        return {'categ_id': ext_categ_id}
+
+
+@job
+def export_categ_image(session, model_name, record_id, fields=None):
+    """ Export the image of a category. """
+    categ = session.env[model_name].browse(record_id)
+    if categ.prestashop_image_bind_ids:
+        for image in categ.prestashop_image_bind_ids:
+            prestashoperpconnect.delay_export(session, 'prestashop.categ.image', image.id, {})
+    else:
+        for presta_categ in categ.prestashop_bind_ids:
+            image = categ.env['prestashop.categ.image'].create({
+                'backend_id': presta_categ.backend_id.id,
+                'openerp_id': categ.id
+                })
+            prestashoperpconnect.delay_export(session, 'prestashop.categ.image', image.id, {})
