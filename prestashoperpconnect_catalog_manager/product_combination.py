@@ -68,9 +68,10 @@ def product_product_write(session, model_name, record_id, vals):
     record = session.env[model_name].browse(record_id)
     if not record.is_product_variant:
         return
-    prestashoperpconnect.delay_export_all_bindings(
-        session, model_name, record_id, vals)
-
+    for binding in record.prestashop_combinations_bind_ids:
+        export_record.delay(session,
+                            'prestashop.product.combination', binding.id,
+                            vals, priority=20)
 
 
 #@on_record_create(model_names='product.product')
@@ -141,8 +142,8 @@ class ProductCombinationExport(TranslationPrestashopExporter):
                     'prestashop.product.combination.option.value'].create(
                     self.session.cr, self.session.uid, {
                         'backend_id': self.backend_record.id,
-                        'openerp_id': value.val_id.id,
-                        'id_attribute_group': attribute_ext_id}, context=ctx)
+                        'openerp_id': value.id,
+                        }, context=ctx)
                 export_record(self.session,
                               'prestashop.product.combination.option.value',
                               value_ext_id)
@@ -180,13 +181,26 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
                 option_value.append({'id': value_ext_id})
         return option_value
 
-    @changed_by('attribute_value_ids')
+    def _get_combination_image(self, record):
+        images = []
+        image_binder = self.binder_for('prestashop.product.image')
+        for image in record.image_ids:
+            image_ext_id = image_binder.to_backend(image.id, wrap=True)
+            if image_ext_id:
+                images.append({'id': image_ext_id})
+        return images
+
+
+    @changed_by('attribute_value_ids', 'image_ids')
     @mapping
     def associations(self, record):
         return {
             'associations': {
                 'product_option_values': {
-                    'product_option_value':
-                    self._get_product_option_value(record)},
+                    'product_option_value': self._get_product_option_value(record)
+                },
+                'images': {
+                    'image': self._get_combination_image(record)
+                }
             }
         }
