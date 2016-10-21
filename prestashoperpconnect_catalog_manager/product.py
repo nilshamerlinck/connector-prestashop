@@ -22,27 +22,30 @@
 #
 ###############################################################################
 from openerp.addons.connector.queue.job import job
-from openerp.addons.connector.event import on_record_create, on_record_write
+from openerp.addons.connector.event import (
+    on_record_create,
+    on_record_write,
+    on_record_unlink
+)
 from openerp.addons.connector.unit.mapper import (
     ExportMapper,
     mapping,
     changed_by,
     m2o_to_backend
 )
-
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
     TranslationPrestashopExporter,
     PrestashopExporter,
     export_record
 )
-
+from openerp.addons.prestashoperpconnect.unit.delete_synchronizer import PrestashopDeleter
 from openerp.addons.prestashoperpconnect.unit.mapper import (
     TranslationPrestashopExportMapper,
     PrestashopExportMapper
 )
 
 import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
-
+from openerp.addons.prestashoperpconnect.unit.binder import PrestashopModelBinder
 from openerp.addons.prestashoperpconnect.connector import get_environment
 from openerp.addons.prestashoperpconnect.backend import prestashop
 from openerp.addons.prestashoperpconnect.product import INVENTORY_FIELDS
@@ -81,7 +84,7 @@ def prestashop_product_image_create(session, model_name, record_id, vals):
         return
 # remove vals to force export when create
 # TODO think of a better way
-    prestashoperpconnect.delay_export(session, model_name, record_id, {})
+    export_record.delay(session, model_name, record_id, {}, priority=50)
 
 
 @on_record_create(model_names='base_multi_image.image')
@@ -114,6 +117,39 @@ def product_template_write(session, model_name, record_id, vals):
         return
     prestashoperpconnect.delay_export_all_bindings(
         session, model_name, record_id, vals)
+
+
+@on_record_write(model_names='product.image')
+def product_image_write(session, model_name, record_id, vals):
+    if session.context.get('connector_no_export'):
+        return
+    record = session.env[model_name].browse(record_id)
+    for binding in record.prestashop_bind_ids:
+        if prestashoperpconnect.need_to_export(
+                session, binding._model._name, binding.id,
+                backend_id=binding.backend_id.id, fields=vals):
+            export_record.delay(
+                session, binding._model._name, binding.id, priority=50)
+
+
+@on_record_unlink(model_names='product.image')
+def product_image_unlink(session, model_name, record_id):
+    if session.context.get('connector_no_export'):
+        return
+    record = session.env[model_name].browse(record_id)
+    for binding in record.prestashop_bind_ids:
+        product_id = session.env['prestashop.product.template'].search([
+            ('backend_id', '=', binding.backend_id.id),
+            ('openerp_id', '=', binding.product_id.id)])
+        env = get_environment(
+            session, binding._model._name, binding.backend_id.id)
+        binder = env.get_connector_unit(PrestashopModelBinder)
+        ext_id = binder.to_backend(binding.id)
+        ext_product_id = product_id.prestashop_id
+        if ext_id:
+            export_delete_image.delay(
+                session, binding._model._name, binding.backend_id.id,
+                ext_id, ext_product_id)
 
 
 #@on_record_write(model_names='product.product')
@@ -404,6 +440,15 @@ class ProductImageExporter(PrestashopExporter):
 
 
 @prestashop
+class ProductImageDeleter(PrestashopDeleter):
+    _model_name = 'prestashop.product.image'
+
+    def run(self, external_id, product_id):
+        self.backend_adapter.delete(external_id, product_id)
+        return ('Image %s of the product %s deleted on Prestashop') % (external_id, product_id)
+
+
+@prestashop
 class ProductImageExportMapper(PrestashopExportMapper):
     _model_name = 'prestashop.product.image'
 
@@ -427,3 +472,10 @@ class ProductImageExportMapper(PrestashopExportMapper):
         binder = self.binder_for('prestashop.product.template')
         ext_product_id = binder.to_backend(record.product_id.id, wrap=True)
         return {'product_id': ext_product_id}
+
+@job
+def export_delete_image(session, model_name, backend_id, external_id, product_id):
+    """ Delete a record on Prestashop """
+    env = get_environment(session, model_name, backend_id)
+    deleter = env.get_connector_unit(ProductImageDeleter)
+    return deleter.run(external_id, product_id)
