@@ -315,6 +315,8 @@ class prestashop_binding(orm.AbstractModel):
             ondelete='restrict'),
         # TODO : do I keep the char like in Magento, or do I put a PrestaShop ?
         'prestashop_id': fields.integer('ID on PrestaShop'),
+        # Field use to avoid export to prestashop for a specific record
+        'no_export': fields.boolean('No export to PrestaShop'),
     }
 
     # the _sql_contraints cannot be there due to this bug:

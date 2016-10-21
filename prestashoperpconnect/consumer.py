@@ -36,9 +36,9 @@ _logger = logging.getLogger(__name__)
 
 
 def need_to_export(
-        session, model_name, binding_id, backend_id=None, fields=None):
+        session, model_name, binding, backend_id=None, fields=None):
     if not backend_id:
-        backend_id = session.env[model_name].browse(binding_id).backend_id.id
+        backend_id = binding.backend_id.id
     env = get_environment(session, model_name, backend_id)
     mapper = env.get_connector_unit(ExportMapper)
     exported_fields = mapper.get_changed_by_fields()
@@ -49,6 +49,11 @@ def need_to_export(
                 "of exported fields %s",
                 model_name, fields, list(exported_fields))
             return False
+    if binding.no_export:
+        _logger.debug(
+            "Skip export of %s because export is disable for it",
+            model_name)
+        return False
     return True
 
 
@@ -61,7 +66,8 @@ def delay_export(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     fields = vals.keys()
-    if not need_to_export(session, model_name, record_id, fields=fields):
+    record = session.env[model_name].browse(record_id)
+    if not need_to_export(session, model_name, record, fields=fields):
         return
     export_record.delay(session, model_name, record_id, fields=fields)
 
@@ -78,7 +84,7 @@ def delay_export_all_bindings(session, model_name, record_id, vals):
     record = session.env[model_name].browse(record_id)
     for binding in record.prestashop_bind_ids:
         if need_to_export(
-                session, binding._model._name, binding.id,
+                session, binding._model._name, binding,
                 backend_id=binding.backend_id.id, fields=fields):
             export_record.delay(session, binding._model._name, binding.id,
                                 fields=fields)
