@@ -894,6 +894,8 @@ class PrestashopShippingLineBuilder(ShippingLineBuilder):
     _model_name = 'prestashop.sale.order'
 
     def get_line(self):
+        if self.backend_record.shipping_product_id:
+            self.product = self.backend_record.shipping_product_id
         vals = super(PrestashopShippingLineBuilder, self).get_line()
         if self.is_delivery:
             vals['is_delivery'] = True
