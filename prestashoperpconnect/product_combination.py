@@ -80,23 +80,24 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
         attribute_id = option_binder.to_openerp(
             option_value['id_attribute_group'], unwrap=True)
         product = self.mapper.main_product(self.prestashop_record)
-        attribute_group_id = product.attribute_set_id.attribute_group_ids[0].id
+        if product.attribute_set_id:
+            attribute_group_id = product.attribute_set_id.attribute_group_ids[0].id
 
-        attribute_location_ids = self.session.search(
-            'attribute.location',
-            [
-                ('attribute_id', '=', attribute_id),
-                ('attribute_group_id', '=', attribute_group_id)
-            ]
-        )
-        if not attribute_location_ids:
-            self.session.create(
+            attribute_location_ids = self.session.search(
                 'attribute.location',
-                {
-                    'attribute_id': attribute_id,
-                    'attribute_group_id': attribute_group_id,
-                }
+                [
+                    ('attribute_id', '=', attribute_id),
+                    ('attribute_group_id', '=', attribute_group_id)
+                ]
             )
+            if not attribute_location_ids:
+                self.session.create(
+                    'attribute.location',
+                    {
+                        'attribute_id': attribute_id,
+                        'attribute_group_id': attribute_group_id,
+                    }
+                )
 
     def _after_import(self, erp_id):
         record = self.prestashop_record

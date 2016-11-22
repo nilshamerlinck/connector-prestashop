@@ -92,7 +92,6 @@ class ProductPriceExporter(ExportSynchronizer):
         url = product.backend_id.location + '/updateprice.php'
         print url, 'kk', datas
         res = self.update_price(url, datas)
-        print "j", res
         return True
 
 @on_product_price_changed

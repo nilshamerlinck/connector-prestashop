@@ -145,6 +145,8 @@ class ProductMapper(PrestashopImportMapper):
 
     @mapping
     def price(self, record):
+        if self.has_combinations(record):
+            return {'list_price_tax_inc': 0.0, 'list_price': 0.0}
         if self.backend_record.taxes_included:
             return {'list_price_tax_inc': record['price']}
         return {'list_price': record['price']}
@@ -320,7 +322,10 @@ class ProductMapper(PrestashopImportMapper):
                 'procure_method': 'make_to_order',
                 'supply_method': 'produce',
             }
-        return {}
+        return {
+            'procure_method': 'make_to_stock',
+            'supply_method': 'buy',
+        }
 
 
 @prestashop

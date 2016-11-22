@@ -90,9 +90,15 @@ class RefundMapper(PrestashopImportMapper):
         fiscal_position = None
         if sale_order.fiscal_position:
             fiscal_position = sale_order.fiscal_position.id
+        if sale_order:
+            partner_id = sale_order.partner_invoice_id.id
+        else:
+            binder = self.get_binder_for_model('prestashop.res.partner')
+            partner_id = binder.to_openerp(record['id_customer'], unwrap=True)
         return {
             'origin': sale_order['name'],
             'fiscal_position': fiscal_position,
+            'partner_id': partner_id,
         }
 
     @mapping
@@ -239,11 +245,11 @@ class RefundMapper(PrestashopImportMapper):
     def type(self, record):
         return {'type': 'out_refund'}
 
-    @mapping
-    def partner_id(self, record):
-        binder = self.get_binder_for_model('prestashop.res.partner')
-        partner_id = binder.to_openerp(record['id_customer'], unwrap=True)
-        return {'partner_id': partner_id}
+#    @mapping
+#    def partner_id(self, record):
+#        binder = self.get_binder_for_model('prestashop.res.partner')
+#        partner_id = binder.to_openerp(record['id_customer'], unwrap=True)
+#        return {'partner_id': partner_id}
 
     @mapping
     def account_id(self, record):
