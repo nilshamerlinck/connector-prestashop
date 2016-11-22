@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+<data>
+
+    <record id="prestashop_backend_invoice_mail_tmpl_view" model="ir.ui.view">
+        <field name="name">prestashop_backend_invoice_mail_tmpl_view</field>
+        <field name="model">prestashop.backend</field>
+        <field name="inherit_id" ref="prestashoperpconnect.view_prestashop_backend_form"/>
+        <field name="arch" type="xml">
+            <field name="shipping_product_id" position="after">
+                <field name="invoice_tmpl_mail_id"/>
+            </field>
+        </field>
+    </record>
+
+</data>
+</openerp>
