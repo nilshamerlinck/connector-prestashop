@@ -342,7 +342,7 @@ class MrpBomImport(PrestashopImportSynchronizer):
         bundle = record.get('associations', {}).get('product_bundle', {})
         if 'product' not in bundle:
             return
-        products = bundle['products']
+        products = bundle['product']
         if not isinstance(products, list):
             products = [products]
         for product in products:
