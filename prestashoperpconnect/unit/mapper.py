@@ -525,8 +525,8 @@ class SaleOrderMapper(PrestashopImportMapper):
             return {'workflow_process_id': 3}
         if 'mk6' in self.backend_record.location and record['current_state'] in ['14', '15']:
             return {'workflow_process_id': 3}
-        if 'logistiflex' in self.backend_record.location and record['current_state'] in ['2']:
-            return {'workflow_process_id': 3}
+#        if 'logistiflex' in self.backend_record.location and record['current_state'] in ['2']:
+#            return {'workflow_process_id': 3}
         return {}
 
     def _after_mapping(self, result):
@@ -831,12 +831,12 @@ class MrpBomMapper(PrestashopImportMapper):
             bom = self.session.browse('mrp.bom', bom_id)
             line_ids = [l.id for l in bom.bom_lines]
             self.session.unlink('mrp.bom', line_ids)
-        if 'products' not in bundle:
+        if 'product' not in bundle:
             return {}
         binder = self.get_connector_unit_for_model(
             Binder, 'prestashop.product.product',
         )
-        products = bundle['products']
+        products = bundle['product']
         if not isinstance(products, list):
             products = [products]
         for product in products:

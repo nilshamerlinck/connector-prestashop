@@ -340,7 +340,7 @@ class MrpBomImport(PrestashopImportSynchronizer):
         record = self.prestashop_record
 
         bundle = record.get('associations', {}).get('product_bundle', {})
-        if 'products' not in bundle:
+        if 'product' not in bundle:
             return
         products = bundle['products']
         if not isinstance(products, list):
@@ -796,6 +796,12 @@ class ProductRecordImport(TranslatableRecordImport):
         ],
     }
 
+    def _get_prestashop_data(self):
+        """ Return the raw prestashop data for ``self.prestashop_id`` """
+        if self.backend_record.taxes_included:
+            options = {'price[price][use_tax]': 1}
+        return self.backend_adapter.read(self.prestashop_id, attributes=options)
+
     def _after_import(self, erp_id):
         self.import_combinations()
         self.import_images()
@@ -806,7 +812,7 @@ class ProductRecordImport(TranslatableRecordImport):
     def import_bundle(self):
         record = self._get_prestashop_data()
         bundle = record.get('associations', {}).get('product_bundle', {})
-        if 'products' not in bundle:
+        if 'product' not in bundle:
             return
         import_record(
             self.session,
@@ -820,7 +826,7 @@ class ProductRecordImport(TranslatableRecordImport):
         associations = prestashop_record.get('associations', {})
 
         combinations = associations.get('combinations', {}).get(
-            'combinations', [])
+            'combination', [])
         if not isinstance(combinations, list):
             combinations = [combinations]
         for combination in combinations:

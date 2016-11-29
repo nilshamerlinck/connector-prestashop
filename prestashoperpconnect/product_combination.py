@@ -51,6 +51,14 @@ class ProductCombinationAdapter(GenericAdapter):
 class ProductCombinationRecordImport(PrestashopImportSynchronizer):
     _model_name = 'prestashop.product.combination'
 
+    def _get_prestashop_data(self):
+        """ Return the raw prestashop data for ``self.prestashop_id`` """
+        if self.backend_record.taxes_included:
+            options = {'price[price][use_tax]': 1}
+        else:
+            options = {'price[price][use_tax]': 0}
+        return self.backend_adapter.read(self.prestashop_id, attributes=options)
+
     def _import_dependencies(self):
         record = self.prestashop_record
         option_values = record.get('associations', {}).get(
@@ -207,11 +215,10 @@ class ProductCombinationMapper(PrestashopImportMapper):
 
     @mapping
     def price(self, record):
-        main_product = self.main_product(record)
         if self.backend_record.taxes_included:
-            price = main_product.list_price_tax_inc + float(record['unit_price_impact'])
+            price = float(record['price'])
             return {'list_price_tax_inc': price}
-        price = main_product.list_price + float(record['unit_price_impact'])
+        price = float(record['price'])
         return {'list_price': price}
 
     @mapping
@@ -444,7 +451,9 @@ class ProductCombinationOptionMapper(PrestashopImportMapper):
                 name = languages[0]['value']
         else:
             name = record['name']
+        # Attribute must have a unique name, even for multi site...
         field_name = 'x_' + unidecode(name.replace(' ', ''))
+        field_name = field_name + str(self.backend_record.id).decode("utf-8")
         return {'name': field_name, 'field_description': name}
 
 

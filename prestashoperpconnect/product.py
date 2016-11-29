@@ -171,7 +171,7 @@ class ProductMapper(PrestashopImportMapper):
 
     def has_combinations(self, record):
         combinations = record.get('associations', {}).get(
-            'combinations', {}).get('combinations', [])
+            'combinations', {}).get('combination', [])
         return len(combinations) != 0
 
     @mapping
