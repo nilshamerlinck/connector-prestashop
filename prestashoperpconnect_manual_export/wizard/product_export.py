@@ -8,7 +8,6 @@
 ##############################################################################
 from openerp import models, api, fields, exceptions, _
 from openerp.addons.connector.session import ConnectorSession
-from openerp.addons.custom_oskab.prestashop.product import export_media
 import openerp.addons.prestashoperpconnect.consumer as prestashoperpconnect
 
 
