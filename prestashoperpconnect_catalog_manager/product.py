@@ -57,9 +57,6 @@ import openerp.addons.decimal_precision as dp
 
 @on_record_create(model_names='prestashop.product.template')
 def prestashop_product_template_create(session, model_name, record_id, vals):
-    if session.context.get('connector_no_export'):
-        return
-    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
     #Create prestashop image for each image
     record = session.env[model_name].browse(record_id)
     for image in record.image_ids:
@@ -67,6 +64,9 @@ def prestashop_product_template_create(session, model_name, record_id, vals):
             'openerp_id': image.id,
             'backend_id': record.backend_id.id
             })
+    if session.context.get('connector_no_export'):
+        return
+    prestashoperpconnect.delay_export(session, model_name, record_id, vals)
 
 
 @on_record_write(model_names='prestashop.product.template')
