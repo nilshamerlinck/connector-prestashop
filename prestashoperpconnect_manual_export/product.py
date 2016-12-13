@@ -19,6 +19,8 @@ class ProductTemplate(models.Model):
         """
         Don't trigger automatic export.
         """
+        if 'image_ids' in vals:
+            return super(ProductTemplate, self).write(vals)
         return super(
             ProductTemplate,
             self.with_context(connector_no_export=True)).write(vals)
@@ -32,6 +34,8 @@ class ProductProduct(models.Model):
         """
         Don't trigger automatic export.
         """
+        if 'image_ids' in vals:
+            return super(ProductProduct, self).write(vals)
         return super(
             ProductProduct,
             self.with_context(connector_no_export=True)).write(vals)
@@ -45,6 +49,8 @@ class PrestashopProductTemplate(models.Model):
         """
         Don't trigger automatic export.
         """
+        if 'image_ids' in vals:
+            return super(PrestashopProductTemplate, self).write(vals)
         return super(
             PrestashopProductTemplate,
             self.with_context(connector_no_export=True)).create(vals)
@@ -54,6 +60,8 @@ class PrestashopProductTemplate(models.Model):
         """
         Don't trigger automatic export.
         """
+        if 'image_ids' in vals:
+            return super(PrestashopProductTemplate, self).write(vals)
         return super(
             PrestashopProductTemplate,
             self.with_context(connector_no_export=True)).write(vals)
@@ -66,4 +74,30 @@ class PrestashopProductTemplate(models.Model):
             prestashoperpconnect.delay_export(
                 session, 'prestashop.product.template', product.id, {})
         return True
+
+
+class PrestashopProductCombination(models.Model):
+    _inherit = 'prestashop.product.combination'
+
+    @api.model
+    def create(self, vals):
+        """
+        Don't trigger automatic export.
+        """
+        if 'image_ids' in vals:
+            return super(PrestashopProductCombination, self).write(vals)
+        return super(
+            PrestashopProductCombination,
+            self.with_context(connector_no_export=True)).create(vals)
+
+    @api.multi
+    def write(self, vals):
+        """
+        Don't trigger automatic export.
+        """
+        if 'image_ids' in vals:
+            return super(PrestashopProductCombination, self).write(vals)
+        return super(
+            PrestashopProductCombination,
+            self.with_context(connector_no_export=True)).write(vals)
 
