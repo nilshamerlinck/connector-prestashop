@@ -160,7 +160,16 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
         """ Create the ERP record """
         if context is None:
             context = self._context()
+        # Totally ugly, we want to put fr value on both translation in Odoo
+        # Until prestashoperpconnect is refactored to handle translation correctly
         context['lang'] = 'fr_FR'
+        erp_id = self.model.create(
+            self.session.cr,
+            self.session.uid,
+            data,
+            context=context
+        )
+        context['lang'] = 'en_US'
         erp_id = self.model.create(
             self.session.cr,
             self.session.uid,
@@ -175,7 +184,15 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
         """ Update an ERP record """
         if context is None:
             context = self._context()
+        # Totally ugly, we want to put fr value on both translation in Odoo
+        # Until prestashoperpconnect is refactored to handle translation correctly
         context['lang'] = 'fr_FR'
+        self.model.write(self.session.cr,
+                         self.session.uid,
+                         erp_id,
+                         data,
+                         context=context)
+        context['lang'] = 'en_US'
         self.model.write(self.session.cr,
                          self.session.uid,
                          erp_id,
@@ -296,6 +313,8 @@ class ProductCombinationMapper(PrestashopImportMapper):
     def name(self, record):
         product = self.main_product(record)
         #Ugly patch we need to refactor totaly prestashoperpconnect
+        # Totally ugly, we want to put fr value on both translation in Odoo
+        # Until prestashoperpconnect is refactored to handle translation correctly
         product = product.browse(context={'lang': 'fr_FR'})[0]
         options = []
         for option_value_object in self._get_option_value(record):
