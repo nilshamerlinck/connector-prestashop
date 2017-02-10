@@ -77,17 +77,9 @@ class PrestashopTrackingExporter(Exporter):
 @on_tracking_number_added
 def delay_export_tracking_number(session, model_name, record_id):
     """
-    Call a job to export the tracking number to a existing picking that
-    must be in done state.
+    Don't export tracking number for oskab yet
     """
-    # browse on stock.picking because we cant read on stock.picking.out
-    # buggy virtual models... Anyway the ID is the same
-    picking = session.browse('stock.picking', record_id)
-    for binding in picking.sale_id.prestashop_bind_ids:
-        export_tracking_number.delay(session,
-                                     binding._model._name,
-                                     binding.id,
-                                     priority=20)
+    pass
 
 
 @job
