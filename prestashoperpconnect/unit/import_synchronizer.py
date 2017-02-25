@@ -463,7 +463,7 @@ class SaleImportRule(ConnectorUnit):
 
     def _rule_paid(self, record, method):
         """ Import the order only if it has received a payment """
-        if self._get_paid_amount(record) == 0.0:
+        if self._get_paid_amount(record) == 0.0 or record['current_state'] == '8':
             raise OrderImportRuleRetry('The order has not been paid.\n'
                                        'The import will be retried later.')
     def _get_paid_amount(self, record):
@@ -689,13 +689,15 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
         splitted_record = self._split_per_language(self.prestashop_record)
 
         erp_id = None
-
+        default_language = False
         if self._default_language in splitted_record:
             erp_id = self._run_record(
                 splitted_record[self._default_language],
                 self._default_language
             )
             del splitted_record[self._default_language]
+        else:
+            default_language = True
 
         for lang_code, prestashop_record in splitted_record.items():
             erp_id = self._run_record(
@@ -703,6 +705,13 @@ class TranslatableRecordImport(PrestashopImportSynchronizer):
                 lang_code,
                 erp_id
             )
+            # Ugly fix so the english value is updated also. TODO : Refactore totally language management for prestashop
+            if default_language:
+                erp_id = self._run_record(
+                    prestashop_record,
+                    self._default_language,
+                    erp_id
+                )
 
         self.binder.bind(self.prestashop_id, erp_id)
 

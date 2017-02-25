@@ -169,13 +169,6 @@ class ProductCombinationRecordImport(PrestashopImportSynchronizer):
             data,
             context=context
         )
-        context['lang'] = 'en_US'
-        erp_id = self.model.create(
-            self.session.cr,
-            self.session.uid,
-            data,
-            context=context
-        )
         _logger.debug('%s %d created from prestashop %s',
                       self.model._name, erp_id, self.prestashop_id)
         return erp_id
