@@ -290,6 +290,18 @@ class DelayedBatchImport(BatchImportSynchronizer):
 class ResPartnerRecordImport(PrestashopImportSynchronizer):
     _model_name = 'prestashop.res.partner'
 
+    def _has_to_skip(self):
+        # If customer has group 48, it is a very special customer behavior in prestashop.
+        # For order of these customers, prestashop will change the shipping, invoicing addresses and main account to
+        # put at another customer instead (INFO@LR-PERFORMANCE.NET so far...) these 2 partner share the same addresses (same prestashop_id)
+        # So we can't import both because in Odoo we have 1 openerp_id for 1 prestashop_id else it is a big problem.
+        # We only import INFO@LR-PERFORMANCE.NET account.
+        groups = self.prestashop_record.get('associations', {}).get('groups', {}).get('group', {})
+        group_ids = [x.get('id') for x in groups]
+        if '50' in group_ids:
+            return True
+        return False
+
     def _import_dependencies(self):
         groups = self.prestashop_record.get('associations', {})\
             .get('groups', {}).get('group', [])
