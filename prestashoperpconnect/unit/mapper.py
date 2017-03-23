@@ -439,8 +439,8 @@ class SaleOrderMapper(PrestashopImportMapper):
 
     @mapping
     def shipping(self, record):
-        shipping_tax_incl = float(record['total_shipping_tax_incl'])
-        shipping_tax_excl = float(record['total_shipping_tax_excl'])
+        shipping_tax_incl = float(record['total_shipping_tax_incl'] or '0.0')
+        shipping_tax_excl = float(record['total_shipping_tax_excl'] or '0.0')
         return {
             'shipping_amount_tax_included': shipping_tax_incl,
             'shipping_amount_tax_excluded': shipping_tax_excl,

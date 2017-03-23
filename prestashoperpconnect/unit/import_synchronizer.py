@@ -297,7 +297,9 @@ class ResPartnerRecordImport(PrestashopImportSynchronizer):
         # So we can't import both because in Odoo we have 1 openerp_id for 1 prestashop_id else it is a big problem.
         # We only import INFO@LR-PERFORMANCE.NET account.
         groups = self.prestashop_record.get('associations', {}).get('groups', {}).get('group', {})
-        group_ids = [x.get('id') for x in groups]
+        if not isinstance(groups, list):
+            groups = [groups]
+        group_ids = [x.get('id') for x in groups if x]
         if '50' in group_ids:
             return True
         return False
@@ -823,12 +825,19 @@ class ProductRecordImport(TranslatableRecordImport):
             options = {'price[price][use_tax]': 1}
         return self.backend_adapter.read(self.prestashop_id, attributes=options)
 
+    # If pack is transform in normal product => Delete the BOM. (maybe better to unactive?)
+    def check_bom(self, erp_id):
+        if not (self.prestashop_record['type'].get('value', '') == 'pack' or self.prestashop_record['type'] == 'pack'):
+            for bom in self.model.browse(self.session.cr, self.session.uid, erp_id).openerp_id.bom_ids:
+                bom.unlink()
+
     def _after_import(self, erp_id):
         self.import_combinations()
         self.import_images()
         self.import_default_image()
         self.import_bundle()
         self.import_supplierinfo(erp_id)
+        self.check_bom(erp_id)
 
     def import_bundle(self):
         record = self._get_prestashop_data()
