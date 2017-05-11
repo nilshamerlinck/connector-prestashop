@@ -477,10 +477,10 @@ class ProductInventoryAdapter(GenericAdapter):
             first_key = res.keys()[0]
             stock = res[first_key]
             stock.update({
-                'out_of_stock': int(quantity['out_of_stock']),
-                'quantity': int(quantity['quantity']),
                 'id_product_attribute': 0
                 })
+            # Maybe adapt oca module to be more flexible this way
+            stock.update(quantity)
             try:
                 api.edit(self._prestashop_model, stock['id'], {
                     self._export_node_name: stock
