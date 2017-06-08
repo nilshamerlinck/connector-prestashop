@@ -69,7 +69,7 @@ class PrestashopBackend(orm.Model):
             session = ConnectorSession(cr, uid, context=context)
             product_binding_ids = session.search(
                 'prestashop.product.product',
-                [('backend_id', '=', backend.id)])
+                [('backend_id', '=', backend.id), ('sale_ok', '=', True)])
             combination_binding_ids = session.search(
                 'prestashop.product.combination',
                 [('backend_id', '=', backend.id)])
