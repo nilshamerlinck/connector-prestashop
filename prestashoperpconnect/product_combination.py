@@ -210,6 +210,7 @@ class ProductCombinationMapper(PrestashopImportMapper):
         'taxes_id',
         'company_id',
         'image_medium',
+        'supplier_taxes_id',
     ]
 
     @mapping
