@@ -104,7 +104,7 @@ class ProductTemplateAttributesExportMapper(ProductTemplateExportMapper):
                             [(attribute.name, 'custom_feature_value')]
                         )
                     else:
-                        res = {'custom_feature_value': record[attribute.name]}
+                        res = {'custom_feature_value': {'language': [{'attrs': {'id': '1'}, 'value': record[attribute.name]}, {'attrs': {'id': '4'}, 'value': record[attribute.name]}]}}
                     feature_dict.update(res)
                 product_feature.append(feature_dict)
         return product_feature
