@@ -647,9 +647,12 @@ class SaleOrderLineMapper(PrestashopImportMapper):
     def _find_tax(self, ps_tax_id):
         binder = self.binder_for('prestashop.account.tax')
         openerp_id = binder.to_openerp(ps_tax_id, unwrap=True)
-        tax = self.session.read('account.tax', openerp_id, ['price_include', 'related_inc_tax_id'])
-        if self.backend_record.taxes_included and not tax['price_include'] and tax['related_inc_tax_id']:
-            return tax['related_inc_tax_id'][0]
+        if openerp_id:
+            tax = self.session.read(
+                'account.tax', openerp_id,
+                ['price_include', 'related_inc_tax_id'])
+            if self.backend_record.taxes_included and not tax['price_include'] and tax['related_inc_tax_id']:
+                return tax['related_inc_tax_id'][0]
         return openerp_id
 
     @mapping

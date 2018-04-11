@@ -46,3 +46,4 @@ access_prestashop_product_category_user,User access on prestashop.product.catego
 access_prestashop_product_image_user,User access on prestashop.product.image,model_prestashop_product_image,base.group_sale_salesman,1,0,0,0
 access_prestashop_product_category_image_full,Full access on prestashop.categ.image,model_prestashop_categ_image,connector.group_connector_manager,1,1,1,1
 access_prestashop_product_category_image_user,User access on prestashop.categ.image,model_prestashop_categ_image,base.group_sale_salesman,1,0,0,0
+access_prestashop_shop_user,User access on prestashop.shop,model_prestashop_shop,base.group_user,1,0,0,0

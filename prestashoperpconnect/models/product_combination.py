@@ -83,7 +83,7 @@ class prestashop_product_combination(orm.Model):
         return True
 
     def _prestashop_qty(self, cr, uid, product, context=None):
-        return product.qty_available
+        return product.virtual_available
 
 
 class product_attribute(orm.Model):

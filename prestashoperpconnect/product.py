@@ -334,6 +334,7 @@ class ProductInventoryExporter(Exporter):
     _model_name = ['prestashop.product.template']
 
     def get_filter(self, template):
+        combination_prestashop_id = 0
         binder = self.binder_for()
         prestashop_id = binder.to_backend(template.id)
         return {
@@ -341,16 +342,19 @@ class ProductInventoryExporter(Exporter):
             'filter[id_product_attribute]': 0
         }
 
-    def run(self, binding_id, fields):
-        """ Export the product inventory to Prestashop """
-        template = self.session.env[self.model._name].browse(binding_id)
-        adapter = self.unit_for(GenericAdapter, '_import_stock_available')
-        filter = self.get_filter(template)
-        quantity_vals = {
+    def get_quantity_vals(self, template):
+        return {
             'quantity': int(template.quantity),
             'out_of_stock': int(template.out_of_stock),
         }
-        adapter.export_quantity(filter, quantity_vals)
+
+    def run(self, binding_id, fields):
+        """ Export the product inventory to Prestashop """
+        record = self.session.env[self.model._name].browse(binding_id)
+        adapter = self.unit_for(GenericAdapter, '_import_stock_available')
+        stock_filter = self.get_filter(record)
+        quantity_vals = self.get_quantity_vals(record)
+        adapter.export_quantity(stock_filter, quantity_vals)
 
 
 @prestashop
@@ -486,7 +490,7 @@ class ProductInventoryAdapter(GenericAdapter):
 
 # fields which should not trigger an export of the products
 # but an export of their inventory
-INVENTORY_FIELDS = ('quantity',)
+INVENTORY_FIELDS = ('quantity', 'out_of_stock')
 
 
 @on_record_write(model_names=[
@@ -495,8 +499,8 @@ INVENTORY_FIELDS = ('quantity',)
 ])
 def prestashop_product_stock_updated(session, model_name, record_id,
                                      fields=None):
-    if session.context.get('connector_no_export'):
-        return
+#    if session.context.get('connector_no_export'):
+#        return
     inventory_fields = list(set(fields).intersection(INVENTORY_FIELDS))
     if inventory_fields:
         export_inventory.delay(session, model_name,
