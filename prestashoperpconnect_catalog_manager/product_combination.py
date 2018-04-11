@@ -58,7 +58,7 @@ def prestashop_product_combination_write(session, model_name, record_id, vals):
     fields = list(set(vals).difference(set(INVENTORY_FIELDS)))
     if fields:
         prestashoperpconnect.delay_export(
-            session, model_name, record_id, fields=vals)
+            session, model_name, record_id, vals)
 
 
 @on_record_write(model_names='product.product')
@@ -69,9 +69,8 @@ def product_product_write(session, model_name, record_id, vals):
     if not record.is_product_variant:
         return
     for binding in record.prestashop_combinations_bind_ids:
-        export_record.delay(session,
-                            'prestashop.product.combination', binding.id,
-                            vals, priority=20)
+        prestashoperpconnect.delay_export(
+            session, 'prestashop.product.combination', binding.id, vals)
 
 
 #@on_record_create(model_names='product.product')
@@ -147,6 +146,8 @@ class ProductCombinationExport(TranslationPrestashopExporter):
                 export_record(self.session,
                               'prestashop.product.combination.option.value',
                               value_ext_id)
+    def _after_export(self):
+        self.erp_record.recompute_prestashop_qty()
 
 
 @prestashop
@@ -190,6 +191,25 @@ class ProductCombinationExportMapper(TranslationPrestashopExportMapper):
                 images.append({'id': image_ext_id})
         return images
 
+    @mapping
+    def extra_price(self, record):
+        price_excl = record.taxes_id.compute_all(record['price_extra'], 1)['total']
+        # Test if price tax inc and excl are corresponding because of the rounding
+        check_price = record.taxes_id.compute_all(price_excl, 1, force_excluded=True)['total_included']
+        if check_price != record['price_extra']:
+            if check_price > record['price_extra']:
+                price_excl -= 0.001
+            elif check_price < record['price_extra']:
+                price_excl += 0.001
+            check_price = record.taxes_id.compute_all(price_excl, 1, force_excluded=True)['total_included']
+            if check_price != record['price_extra']:
+                add_checkpoint(
+                    self.session,
+                    'product.product',
+                    record.openerp_id.id,
+                    self.backend_record.id
+                    )
+        return {'price': price_excl}
 
     @changed_by('attribute_value_ids', 'image_ids')
     @mapping

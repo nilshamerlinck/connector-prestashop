@@ -24,7 +24,6 @@
 from openerp.osv import fields, orm
 from openerp.addons.connector.event import on_record_create, on_record_write
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
-    export_record,
     TranslationPrestashopExporter,
     PrestashopExporter,
     )

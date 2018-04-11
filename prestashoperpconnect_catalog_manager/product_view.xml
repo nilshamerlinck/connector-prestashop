@@ -22,6 +22,7 @@
                         <field name="available_later"/>
                         <field name="available_date"/>
                         <field name="minimal_quantity"/>
+<!--                        <field name="position_in_category"/>-->
                     </group>
                 </xpath>
             </field>
@@ -66,6 +67,7 @@
                     <field name="prestashop_id"/>
                 </tree>
            </field>
-        </record>
+       </record>
+
     </data>
 </openerp>

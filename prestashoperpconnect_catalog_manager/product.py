@@ -92,11 +92,13 @@ def product_image_create(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     image = session.env[model_name].browse(record_id)
-    for prestashop_product in image.product_id.prestashop_bind_ids:
-        binding = session.env['prestashop.product.image'].create({
-            'openerp_id': record_id,
-            'backend_id': prestashop_product.backend_id.id
-            })
+    for prestashop_product in session.env['prestashop.product.template'].search(
+            [('openerp_id', '=', image.owner_id)]):
+        if image.storage == 'file':
+            binding = session.env['prestashop.product.image'].create({
+                'openerp_id': record_id,
+                'backend_id': prestashop_product.backend_id.id
+                })
 
 
 #@on_record_create(model_names='product.template')
@@ -119,20 +121,20 @@ def product_template_write(session, model_name, record_id, vals):
         session, model_name, record_id, vals)
 
 
-@on_record_write(model_names='product.image')
+@on_record_write(model_names='base_multi_image.image')
 def product_image_write(session, model_name, record_id, vals):
     if session.context.get('connector_no_export'):
         return
     record = session.env[model_name].browse(record_id)
     for binding in record.prestashop_bind_ids:
         if prestashoperpconnect.need_to_export(
-                session, binding._model._name, binding.id,
+                session, binding._model._name, binding,
                 backend_id=binding.backend_id.id, fields=vals):
             export_record.delay(
                 session, binding._model._name, binding.id, priority=50)
 
 
-@on_record_unlink(model_names='product.image')
+@on_record_unlink(model_names='base_multi_image.image')
 def product_image_unlink(session, model_name, record_id):
     if session.context.get('connector_no_export'):
         return
@@ -140,7 +142,7 @@ def product_image_unlink(session, model_name, record_id):
     for binding in record.prestashop_bind_ids:
         product_id = session.env['prestashop.product.template'].search([
             ('backend_id', '=', binding.backend_id.id),
-            ('openerp_id', '=', binding.product_id.id)])
+            ('openerp_id', '=', binding.owner_id)])
         env = get_environment(
             session, binding._model._name, binding.backend_id.id)
         binder = env.get_connector_unit(PrestashopModelBinder)
@@ -212,10 +214,14 @@ class prestashop_product_template(orm.Model):
             'Minimal Quantity',
             help='Minimal Sale quantity',
         ),
+        'position_in_category': fields.integer(
+            'Postion in default category',
+        ),
     }
 
     _defaults = {
         'minimal_quantity': 1,
+        'position_in_category': 1,
     }
 
 
@@ -292,6 +298,9 @@ class ProductTemplateExport(TranslationPrestashopExporter):
 
     def _after_export(self):
         self.export_variants()
+        self.erp_record.recompute_prestashop_qty()
+        # Write date_add to avoid erasing the value when exporting the product again
+        self.erp_record.date_add = fields.datetime.now()
 
 
 @prestashop
@@ -312,6 +321,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
         ('additional_shipping_cost', 'additional_shipping_cost'),
         ('minimal_quantity', 'minimal_quantity'),
         ('available_date', 'available_date'), #check date format
+        ('date_add', 'date_add'),
 #        (m2o_to_backend('categ_id', binding='prestashop.product.category'),
 #         'id_category_default'),
     ]
@@ -409,7 +419,7 @@ class ProductTemplateExportMapper(TranslationPrestashopExportMapper):
     @mapping
     def translatable_fields(self, record):
         translatable_fields = [
-        ('name', 'name'),
+#        ('name', 'name'),
         ('link_rewrite', 'link_rewrite'),
         ('meta_title', 'meta_title'),
         ('meta_description', 'meta_description'),
@@ -448,21 +458,21 @@ class ProductImageExportMapper(PrestashopExportMapper):
 #        ('image', 'image')
 #        ]
 
-    @changed_by('image')
+    @changed_by('image_main')
     @mapping
     def image(self, record):
-        return {'image': record['image']}
+        return {'image': record['image_main']}
 
-    @changed_by('name', 'extension2')
+    @changed_by('name', 'extension')
     @mapping
     def filename(self, record):
-        return {'filename': record['name'] + record['extension2']}
+        return {'filename': record['name'] + record['extension']}
 
-    @changed_by('product_id')
+    @changed_by('owner_id')
     @mapping
     def product_id(self, record):
         binder = self.binder_for('prestashop.product.template')
-        ext_product_id = binder.to_backend(record.product_id.id, wrap=True)
+        ext_product_id = binder.to_backend(record.owner_id, wrap=True)
         return {'product_id': ext_product_id}
 
 @job

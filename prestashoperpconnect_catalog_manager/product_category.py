@@ -31,7 +31,6 @@ from openerp.addons.connector.unit.mapper import (
 from openerp.addons.prestashoperpconnect.unit.export_synchronizer import (
     TranslationPrestashopExporter,
     PrestashopExporter,
-    export_record
 )
 
 from openerp.addons.prestashoperpconnect.unit.mapper import (
