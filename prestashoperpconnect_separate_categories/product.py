@@ -46,11 +46,14 @@ class ProductTemplateCategoryExportMapper(ProductTemplateExportMapper):
         return {}
 
     def _get_product_category(self, record):
-        ext_categ_ids = super(ProductTemplateCategoryExportMapper, self)._get_product_category(record)
+        """
+        Don't use the main categ but the default categ.
+        """
+        ext_categ_ids = []
         binder = self.binder_for('prestashop.product.category')
-        wrong_main_categ = binder.to_backend(record.categ_id.id, wrap=True)
-        main_categ = binder.to_backend(record.default_categ_id.id, wrap=True)
-        for categ in ext_categ_ids:
-            if categ['id'] == wrong_main_categ:
-                categ['id'] = main_categ
+        categories = list(set(record.categ_ids + record.default_categ_id))
+        for category in categories:
+            ext_id = binder.to_backend(category.id, wrap=True)
+            if ext_id:
+                ext_categ_ids.append({'id': ext_id})
         return ext_categ_ids
