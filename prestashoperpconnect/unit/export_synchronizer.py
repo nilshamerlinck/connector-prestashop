@@ -81,6 +81,7 @@ class PrestashopBaseExporter(Exporter):
         result = self._run(*args, **kwargs)
 
         self.binder.bind(self.prestashop_id, self.binding_id)
+        self._after_export()
         return result
 
     def _run(self):
@@ -285,7 +286,6 @@ class PrestashopExporter(PrestashopBaseExporter):
         #map_record = self.mapper.map_record(fields)
         #a = self.mapper.convert_languages(self.mapper.translatable_fields)
         #self._map_data(fields=fields)
-
         if self.prestashop_id:
             #record = self.mapper.data
             record = map_record.values()
@@ -302,7 +302,6 @@ class PrestashopExporter(PrestashopBaseExporter):
             # special check on data before export
             self._validate_data(record)
             self.prestashop_id = self._create(record)
-            self._after_export()
         message = _('Record exported with ID %s on Prestashop.')
         return message % self.prestashop_id
 
