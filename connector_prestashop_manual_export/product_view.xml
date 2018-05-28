@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+<record id="product_connector_presta_tree_view" model="ir.ui.view">
+    <field name="name">prestashoperpconnect.product.template.tree</field>
+    <field name="model">prestashop.product.template</field>
+    <field name="inherit_id" ref="prestashoperpconnect.product_connector_presta_tree_view"/>
+    <field name="arch" type="xml">
+        <button name="recompute_prestashop_qty" position="before">
+            <button name="export_product"
+                class="oe_highlight"
+                type="object"
+                string="Export product"/>
+        </button>
+    </field>
+</record>
+
+</odoo>

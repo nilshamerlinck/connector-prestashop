@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+<record model="ir.ui.view" id="export_multiple_products_form">
+    <field name="name">export.multiple.products.form</field>
+    <field name="model">export.multiple.products</field>
+    <field name="inherit_id" ref="prestashoperpconnect_catalog_manager.export_multiple_products_form"/>
+    <field name="arch" type="xml">
+        <button name="export_products" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </button>
+        <button name="export_products" position="before">
+            <button name="export_all" string="Export All" type="object"/>
+            <button name="export_product" string="Export Products" type="object"/>
+            <button name="export_image" string="Export Images" type="object"/>
+        </button>
+    </field>
+</record>
+
+</odoo>
