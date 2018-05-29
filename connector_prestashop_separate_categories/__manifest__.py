@@ -7,7 +7,7 @@
     "version": "10.0.1.0.0",
     "license": "AGPL-3",
     "depends": [
-        "connector_prestashop"
+        "connector_prestashop_catalog_manager"
     ],
     "author": "Akretion,"
               "Odoo Community Association (OCA)",
