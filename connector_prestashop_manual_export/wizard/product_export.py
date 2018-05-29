@@ -12,19 +12,6 @@ from odoo import models, api, fields, exceptions, _
 class ExportMultipleProducts(models.TransientModel):
     _inherit = 'export.multiple.products'
 
-    @api.model
-    def _get_default_shop(self):
-        shops = self.env['prestashop.shop'].search([])
-        return shops and shops[0].id or None
-
-    shop = fields.Many2one(default=_get_default_shop)
-
-    @api.onchange('shop')
-    def onchange_shop(self):
-        if not self.shop:
-            return
-        self.name = self.shop.backend_id.id
-
     @api.multi
     def export_products(self):
         """
