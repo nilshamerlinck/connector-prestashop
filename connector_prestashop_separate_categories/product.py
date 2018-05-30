@@ -14,9 +14,7 @@ class PrestashopProductTemplate(models.Model):
 
 
 class ProductTemplateCategoryExportMapper(Component):
-    _name = 'separate.prestashop.product.template.export.mapper'
     _inherit = 'prestashop.product.template.export.mapper'
-    _apply_on = 'prestashop.product.template'
 
     @changed_by('default_categ_id')
     @mapping
