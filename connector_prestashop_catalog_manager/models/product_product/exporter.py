@@ -145,15 +145,19 @@ class ProductCombinationExportMapper(Component):
                 images.append({'id': image_ext_id})
         return images
 
+    @changed_by('attribute_value_ids', 'image_ids')
     @mapping
     def associations(self, record):
-        associations = OrderedDict([
-            ('product_option_values',
-                {'product_option_value':
-                 self._get_product_option_value(record)}),
-            ('images', {'image': self._get_combination_image(record) or False})
-        ])
-        return {'associations': associations}
+        return {
+            'associations': {
+                'product_option_values': {
+                    'product_option_value': self._get_product_option_value(record)
+                },
+                'images': {
+                    'image': self._get_combination_image(record)
+                }
+            }
+        }
 
 
 class ProductCombinationOptionExporter(Component):
