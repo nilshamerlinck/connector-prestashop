@@ -58,7 +58,7 @@ class PrestashopProductTemplate(models.Model):
         """
         Don't trigger automatic export.
         """
-        if 'image_ids' in vals:
+        if 'image_ids' in vals or 'quantity' in vals or 'out_of_stock' in vals:
             return super(PrestashopProductTemplate, self).write(vals)
         return super(
             PrestashopProductTemplate,
@@ -90,7 +90,7 @@ class PrestashopProductCombination(models.Model):
         """
         Don't trigger automatic export.
         """
-        if 'image_ids' in vals:
+        if 'image_ids' in vals or 'quantity' in vals or 'out_of_stock' in vals:
             return super(PrestashopProductCombination, self).write(vals)
         return super(
             PrestashopProductCombination,
