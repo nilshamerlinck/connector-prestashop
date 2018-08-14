@@ -208,10 +208,6 @@ class PartnerImportMapper(PrestashopImportMapper):
         return {'group_ids': [(6, 0, partner_categories)]}
 
     @mapping
-    def backend_id(self, record):
-        return {'backend_id': self.backend_record.id}
-
-    @mapping
     def lang(self, record):
         binder = self.binder_for('prestashop.res.lang')
         erp_lang_id = None
