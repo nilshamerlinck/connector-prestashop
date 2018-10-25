@@ -84,7 +84,7 @@ class ExportMultipleProducts(models.TransientModel):
 
     def _check_images(self, product):
         for variant in product.product_variant_ids:
-            for image in variant.image_ids:
+            for image in variant.prestashop_image_ids:
                 if image.owner_id != product.id:
                     image.product_id = product
 

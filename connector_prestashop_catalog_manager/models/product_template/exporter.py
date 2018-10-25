@@ -138,13 +138,13 @@ class ProductTemplateExporter(Component):
         images = []
         if len(self.binding.product_variant_ids) > 1:
             for product in self.binding.product_variant_ids:
-                images.extend(product.image_ids.ids)
+                images.extend(product.prestashop_image_ids.ids)
         return image.id not in images
 
     def check_images(self):
-        if self.binding.image_ids:
+        if self.binding.prestashop_image_ids:
             image_binder = self.binder_for('prestashop.product.image')
-            for image in self.binding.image_ids:
+            for image in self.binding.prestashop_image_ids:
                 image_ext_id = image_binder.to_external(image, wrap=True)
                 # `image_ext_id` is ZERO as long as the image is not exported.
                 # Here we delay the export so,
@@ -310,7 +310,7 @@ class ProductTemplateExportMapper(Component):
 
     @mapping
     def default_image(self, record):
-        default_image = record.image_ids.filtered('front_image')[:1]
+        default_image = record.prestashop_image_ids.filtered('front_image')[:1]
         if default_image:
             binder = self.binder_for('prestashop.product.image')
             ps_image_id = binder.to_external(default_image, wrap=True)

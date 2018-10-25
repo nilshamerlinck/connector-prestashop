@@ -18,6 +18,18 @@ class PrestashopProductImageListener(Component):
     _apply_on = 'base_multi_image.image',
 
     @skip_if(lambda self, record, **kwargs: self.no_connector_export(record))
+    def on_record_create(self, record, fields=None):
+        product = self.env[record.owner_model].browse(record.owner_id)
+        if product.exists():
+            for prestashop_product in product.prestashop_bind_ids:
+                if record.storage == 'file':
+                    binding = self.env['prestashop.product.image'].create({
+                        'odoo_id': record.id,
+                        'backend_id': prestashop_product.backend_id.id
+                        })
+                    binding.with_delay().export_record(fields=fields)
+
+    @skip_if(lambda self, record, **kwargs: self.no_connector_export(record))
     def on_record_write(self, record, fields=None):
         """ Called when a record is written """
         for binding in record.prestashop_bind_ids:
@@ -41,8 +53,8 @@ class PrestashopProductImageListener(Component):
                 binder = work.component(
                     usage='binder', model_name='prestashop.product.image')
                 prestashop_id = binder.to_external(binding)
-                resource = 'images/products/%s' % (template_prestashop_id)
                 if prestashop_id:
                     binding.with_delay().export_delete_record(
                         binding.backend_id,
-                        prestashop_id)
+                        prestashop_id,
+                        template_prestashop_id)

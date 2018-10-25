@@ -24,9 +24,9 @@ class ProductCombinationExporter(Component):
         return res['prestashop']['combination']['id']
 
     def _export_images(self):
-        if self.binding.image_ids:
+        if self.binding.prestashop_image_ids:
             image_binder = self.binder_for('prestashop.product.image')
-            for image_line in self.binding.image_ids:
+            for image_line in self.binding.prestashop_image_ids:
                 image_ext_id = image_binder.to_external(
                     image_line.id, wrap=True)
                 if not image_ext_id:
@@ -139,13 +139,13 @@ class ProductCombinationExportMapper(Component):
     def _get_combination_image(self, record):
         images = []
         image_binder = self.binder_for('prestashop.product.image')
-        for image in record.image_ids:
+        for image in record.prestashop_image_ids:
             image_ext_id = image_binder.to_external(image.id, wrap=True)
             if image_ext_id:
                 images.append({'id': image_ext_id})
         return images
 
-    @changed_by('attribute_value_ids', 'image_ids')
+    @changed_by('attribute_value_ids', 'prestashop_image_ids')
     @mapping
     def associations(self, record):
         return {
