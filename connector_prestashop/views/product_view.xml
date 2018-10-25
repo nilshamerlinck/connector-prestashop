@@ -13,9 +13,11 @@
                         ('product_variant_count', '=', 1)
                         ]}"/>
            </field>
+           <!--
            <xpath expr="//field[@name='lst_price']" position="attributes">
                <attribute name="readonly">1</attribute>
            </xpath>
+           -->
        </field>
     </record>
 

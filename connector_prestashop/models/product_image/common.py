@@ -99,3 +99,15 @@ class ProductImageAdapter(Component):
         """ Delete a record on the external system """
         api = self.connect()
         return api.delete(resource, resource_ids=id)
+
+
+class ProductImageBinder(Component):
+    _name = 'prestashop.product.image.binder'
+    _inherit = 'prestashop.binder'
+    _apply_on = 'prestashop.product.image'
+
+
+    def bind(self, external_id, binding_id):
+        if isinstance(external_id, dict):
+            external_id = external_id['prestashop']['image']['id']
+        return super(ProductImageBinder, self).bind(external_id, binding_id)

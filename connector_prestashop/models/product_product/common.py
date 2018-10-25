@@ -174,9 +174,10 @@ class PrestashopProductCombination(models.Model):
         self_loc = self.with_context(location=locations.ids,
                                      compute_child=False)
         for product_binding in self_loc:
-            new_qty = product_binding._prestashop_qty()
-            if product_binding.quantity != new_qty:
-                product_binding.quantity = new_qty
+            if product_binding.type == 'product':
+                new_qty = product_binding._prestashop_qty()
+                if product_binding.quantity != new_qty:
+                    product_binding.quantity = new_qty
         return True
 
     def _prestashop_qty(self):
