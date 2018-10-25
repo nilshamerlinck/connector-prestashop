@@ -42,6 +42,15 @@ class PrestashopProductImage(models.Model):
             return importer.run(product_tmpl_id, image_id)
 
 
+    @job(default_channel='root.prestashop')
+    def export_delete_record(self, backend, external_id, product_id):
+        """ Delete a record on PrestaShop """
+        self.check_active(backend)
+        with backend.work_on(self._name) as work:
+            deleter = work.component(usage='record.exporter.deleter')
+            return deleter.run(external_id, product_id)
+
+
 class ProductImageAdapter(Component):
     _name = 'prestashop.product.image.adapter'
     _inherit = 'prestashop.crud.adapter'
@@ -95,10 +104,11 @@ class ProductImageAdapter(Component):
             base64.b64decode(attributes['content'])
         )])
 
-    def delete(self, resource, id):
+    def delete(self, image_id, product_id):
         """ Delete a record on the external system """
         api = self.connect()
-        return api.delete(resource, resource_ids=id)
+        image_url = 'images/%s/%s' % (self._prestashop_image_model, str(product_id))
+        return api.delete(image_url, resource_ids=image_id)
 
 
 class ProductImageBinder(Component):

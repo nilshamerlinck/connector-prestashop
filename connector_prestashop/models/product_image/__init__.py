@@ -2,4 +2,4 @@
 
 from . import common
 from . import importer
-# from . import deleter
+from . import deleter
