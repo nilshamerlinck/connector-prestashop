@@ -21,7 +21,17 @@
 ##############################################################################
 
 import openerp.addons.connector.backend as backend
+from openerp.addons.connector.queue.job import (
+    whitelist_unpickle_global
+)
+from pytz import _p
 
 
 prestashop = backend.Backend('prestashop')
 prestashop1500 = backend.Backend(parent=prestashop, version='1.5')
+
+
+# Need to be compatible with last version of connector.
+# Will be useless next version since date in import jobs does not use pytz
+# anymore.
+whitelist_unpickle_global(_p)
