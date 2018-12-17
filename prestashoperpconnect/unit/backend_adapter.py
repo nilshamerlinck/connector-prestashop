@@ -29,9 +29,24 @@ import logging
 from openerp.tools import config
 from prestapyt import PrestaShopWebServiceDict
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
+from openerp.addons.connector.exception import NetworkRetryableError
+from requests.exceptions import ConnectionError
 from ..backend import prestashop
 
 _logger = logging.getLogger(__name__)
+
+
+def retryable_connection_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ConnectionError as err:
+            raise NetworkRetryableError(
+                'A network error caused the failure of the job: '
+                '%s' % err, seconds=60*60*2)
+        except Exception as e:
+            raise e
+    return wrapper
 
 
 class PrestaShopWebServiceImage(PrestaShopWebServiceDict):
@@ -125,6 +140,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
                                         debug=debug)
 
 
+    @retryable_connection_error
     def search(self, filters=None):
         """ Search records according to some criterias
         and returns a list of ids
@@ -134,6 +150,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
         api = self.connect()
         return api.search(self._prestashop_model, filters)
 
+    @retryable_connection_error
     def read(self, id, attributes=None):
         """ Returns the information of a record
 
@@ -145,6 +162,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
         first_key = res.keys()[0]
         return res[first_key]
 
+    @retryable_connection_error
     def create(self, attributes=None):
         """ Create a record on the external system """
         api = self.connect()
@@ -153,6 +171,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
             self._export_node_name: attributes
         })
 
+    @retryable_connection_error
     def write(self, id, attributes=None):
         """ Update records on the external system """
         api = self.connect()
@@ -160,6 +179,7 @@ class GenericAdapter(PrestaShopCRUDAdapter):
         return api.edit(
             self._prestashop_model, id, {self._export_node_name: attributes})
 
+    @retryable_connection_error
     def delete(self, ids):
         api = self.connect()
         """ Delete a record(s) on the external system """
