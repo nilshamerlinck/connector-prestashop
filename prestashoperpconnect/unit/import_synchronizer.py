@@ -1013,8 +1013,7 @@ def import_customers_since(session, backend_id, since_date=None):
 @job(default_channel='root.prestashop_import')
 def import_orders_since(session, backend_id, since_date=None):
     """ Prepare the import of orders modified on Prestashop """
-
-    now_fmt = datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)
+    now_fmt = datetime.now()
     filters = None
     if since_date:
         date_str = since_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -1034,15 +1033,17 @@ def import_orders_since(session, backend_id, since_date=None):
         import_batch(session, 'prestashop.mail.message', backend_id, filters)
     except:
         pass
-
+    # Add a 10 second margin to avoid to miss an order if it is created in
+    # prestashop in the same time we check.
+    next_datetime = (now_fmt - timedelta(seconds=10)).strftime(
+        DEFAULT_SERVER_DATETIME_FORMAT)
     session.pool.get('prestashop.backend').write(
         session.cr,
         session.uid,
         backend_id,
-        {'import_orders_since': now_fmt},
+        {'import_orders_since': next_datetime},
         context=session.context
     )
-
 
 @job
 def import_products(session, backend_id, since_date):
