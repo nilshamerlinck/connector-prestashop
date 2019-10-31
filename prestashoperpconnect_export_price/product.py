@@ -97,8 +97,9 @@ class ProductPriceExporter(ExportSynchronizer):
 @on_product_price_changed
 def product_price_changed(session, model_name, record_id, fields=None):
     """ When a product.product price has been changed """
-    if session.context.get('connector_no_export'):
-        return
+    # Always export even if connector_no_export is in context...
+    # Indeed, some information coming from presta (brand) may change the price
+    # and we want then to re-export it.
     model = session.pool.get(model_name)
     record = model.browse(session.cr, session.uid,
                           record_id, context=session.context)
