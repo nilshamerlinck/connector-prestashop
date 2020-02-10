@@ -687,6 +687,22 @@ class TaxGroupMapper(PrestashopImportMapper):
     def company_id(self, record):
         return {'company_id': self.backend_record.company_id.id}
 
+    @mapping
+    def tax_ids(self, record):
+        if record.get('deleted') == '0':
+            group_ids = self.session.pool.get('prestashop.account.tax.group').search(
+                self.session.cr,
+                self.session.uid,
+                [('name', '=', record['name']),
+                 ('prestashop_id', '!=', int(record.get('id'))),
+                 ('tax_ids', '!=', False)])
+            if group_ids:
+                group = self.session.pool.get('prestashop.account.tax.group').browse(
+                    self.session.cr, self.session.uid, group_ids)[0]
+                tax_ids = [t.id for t in group.tax_ids]
+                return {'tax_ids': [(6, 0, tax_ids)]}
+        return {}
+
 
 @prestashop
 class SupplierInfoMapper(PrestashopImportMapper):
