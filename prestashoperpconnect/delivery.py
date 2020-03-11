@@ -24,6 +24,7 @@ import logging
 from openerp.osv import fields, orm
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper,
+                                                  only_create,
                                                   )
 from .unit.backend_adapter import GenericAdapter
 from .unit.mapper import PrestashopImportMapper
@@ -68,6 +69,7 @@ class CarrierImportMapper(PrestashopImportMapper):
         return {'active_ext': record['active'] == '1'}
 
     @mapping
+    @only_create
     def product_id(self, record):
         if self.backend_record.shipping_product_id:
             return {'product_id': self.backend_record.shipping_product_id.id}
@@ -83,6 +85,7 @@ class CarrierImportMapper(PrestashopImportMapper):
         return {}
 
     @mapping
+    @only_create
     def partner_id(self, record):
         partner_pool = self.session.pool['res.partner']
         default_partner = partner_pool.search(
