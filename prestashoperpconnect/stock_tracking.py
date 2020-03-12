@@ -88,7 +88,7 @@ def delay_export_tracking_number(session, model_name, record_id):
             export_tracking_number.delay(session,
                                         binding._model._name,
                                         binding.id,
-                                        priority=20)
+                                        priority=14)
 
 
 @job
