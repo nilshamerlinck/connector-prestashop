@@ -166,10 +166,11 @@ class RefundMapper(PrestashopImportMapper):
 
         if not sale_order.carrier_id:
             return None
-
+        carrier_ids = self.session.search('delivery.carrier', [])
+        carrier_product_ids = [c.product_id.id for c in self.session.browse('delivery.carrier', carrier_ids) if c.product_id]
         sale_order_line_ids = self.session.search('sale.order.line', [
             ('order_id', '=', sale_order.openerp_id.id),
-            ('product_id', '=', sale_order.carrier_id.product_id.id),
+            ('product_id', 'in', carrier_product_ids),
         ])
         if not sale_order_line_ids:
             return None
