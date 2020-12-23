@@ -3,22 +3,19 @@
 
 {
     "name": "PrestaShop-Odoo connector Import Bom",
-    "version": "12.0.1.0.0",
+    "version": "14.0.1.0.0",
     "license": "AGPL-3",
     "depends": [
         "connector_prestashop",
         "mrp",
     ],
-    "author": "Akretion,"
-              "Odoo Community Association (OCA)",
-
+    "author": "Akretion," "Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/connector-prestashop",
     "category": "Connector",
-    'demo': [
-    ],
-    'data': [
+    "demo": [],
+    "data": [
         "security/ir.model.access.csv",
     ],
-    'installable': True,
+    "installable": True,
     "application": False,
 }
