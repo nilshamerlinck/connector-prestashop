@@ -31,7 +31,7 @@ class BomMapper(Component):
         template = tmpl_binder.to_internal(record["id"], unwrap=True)
         return {
             "product_tmpl_id": template.id,
-            "product_uom": template.uom_id.id,
+            "product_uom_id": template.uom_id.id,
         }
 
     @mapping
@@ -62,7 +62,7 @@ class BomMapper(Component):
                     {
                         "product_id": variant.id,
                         "product_qty": int(component["quantity"]) or 1,
-                        "product_uom": variant.uom_id.id,
+                        "product_uom_id": variant.uom_id.id,
                     },
                 )
             )
