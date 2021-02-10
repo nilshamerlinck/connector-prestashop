@@ -91,14 +91,15 @@ class RefundMapper(PrestashopImportMapper):
         if sale_order.fiscal_position:
             fiscal_position = sale_order.fiscal_position.id
         if sale_order:
-            partner_id = sale_order.partner_invoice_id.id
+            partner = sale_order.partner_invoice_id
         else:
             binder = self.get_binder_for_model('prestashop.res.partner')
-            partner_id = binder.to_openerp(record['id_customer'], unwrap=True)
+            partner = binder.to_openerp(record['id_customer'], unwrap=False)
         return {
             'origin': sale_order['name'],
             'fiscal_position': fiscal_position,
-            'partner_id': partner_id,
+            'partner_id': partner.id,
+            'account_id': partner.property_account_receivable.id,
         }
 
     @mapping
@@ -252,20 +253,20 @@ class RefundMapper(PrestashopImportMapper):
 #        partner_id = binder.to_openerp(record['id_customer'], unwrap=True)
 #        return {'partner_id': partner_id}
 
-    @mapping
-    def account_id(self, record):
-        binder = self.get_binder_for_model('prestashop.sale.order')
-        context = self.session.context
-        context['company_id'] = self.backend_record.company_id.id
-        binder = self.get_binder_for_model('prestashop.res.partner')
-        partner_id = binder.to_openerp(record['id_customer'])
-        partner = self.session.pool['prestashop.res.partner'].browse(
-            self.session.cr,
-            self.session.uid,
-            partner_id,
-            context=context
-        )
-        return {'account_id': partner.property_account_receivable.id}
+#    @mapping
+#    def account_id(self, record):
+#        binder = self.get_binder_for_model('prestashop.sale.order')
+#        context = self.session.context
+#        context['company_id'] = self.backend_record.company_id.id
+#        binder = self.get_binder_for_model('prestashop.res.partner')
+#        partner_id = binder.to_openerp(record['id_customer'])
+#        partner = self.session.pool['prestashop.res.partner'].browse(
+#            self.session.cr,
+#            self.session.uid,
+#            partner_id,
+#            context=context
+#        )
+#        return {'account_id': partner.property_account_receivable.id}
 
     @mapping
     def company_id(self, record):
