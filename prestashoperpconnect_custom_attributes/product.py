@@ -98,6 +98,10 @@ class ProductTemplateAttributesExportMapper(ProductTemplateExportMapper):
                     else:
                         continue
                 else:
+                    if attribute.ttype == 'char':
+                        # in case of char, prestapyt will fail sending empty values
+                        if not record[attribute.name]:
+                            continue
                     feature_dict['id_feature_value'] = 0
                     if attribute.translate:
                         res = self.convert_languages(
